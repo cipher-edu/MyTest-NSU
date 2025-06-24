@@ -1,0 +1,25 @@
+# .dockerignore
+
+# Git
+.git
+.gitignore
+
+# Docker
+Dockerfile
+docker-compose.yml
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv
+venv/
+env/
+
+# IDE va OS fayllari
+.idea/
+.vscode/
+*.swp
+*~
+.DS_Store

@@ -1,0 +1,53 @@
+services:
+  web:
+    build: .
+    command: gunicorn --bind 0.0.0.0:8000 external_auth_project.wsgi:application
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./.env.prod
+    depends_on:
+      - db
+      - redis
+
+  db:
+    image: postgres:15
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_DB=survey_prod_db
+      - POSTGRES_USER=survey_user
+      - POSTGRES_PASSWORD=super_secret_password
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  celery:
+    build: .
+    command: celery -A external_auth_project worker -l info
+    volumes:
+      - .:/app
+    env_file:
+      - ./.env.prod
+    depends_on:
+      - redis
+      - db
+
+#   pgadmin:
+#     image: dpage/pgadmin4
+#     environment:
+#       PGADMIN_DEFAULT_EMAIL: admin@admin.com
+#       PGADMIN_DEFAULT_PASSWORD: admin123
+#     ports:
+#       - "5050:80"
+#     depends_on:
+#       - db
+
+volumes:
+  postgres_data:

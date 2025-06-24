@@ -1,0 +1,398 @@
+{% extends "auth_app/base.html" %}
+
+{% block page_title %}Profilim - {{ student.short_name_api|default:student.username|default:"Talaba" }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .floating-academic-icons {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        pointer-events: none;
+        z-index: 1;
+        overflow: hidden;
+    }
+    .floating-academic-icons .icon-btn {
+        position: absolute;
+        width: 2.1rem;
+        height: 2.1rem;
+        min-width: 1.7rem;
+        min-height: 1.7rem;
+        max-width: 2.5rem;
+        max-height: 2.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 9999px;
+        background: none;
+        pointer-events: none;
+        transition: opacity 0.2s, filter 0.2s, transform 0.2s;
+        animation: floatXY 18s linear infinite alternate;
+    }
+    @media (max-width: 640px) {
+        .floating-academic-icons .icon-btn {
+            width: 1.3rem;
+            height: 1.3rem;
+            min-width: 1rem;
+            min-height: 1rem;
+            max-width: 1.7rem;
+            max-height: 1.7rem;
+        }
+    }
+    .floating-academic-icons .icon-btn .icon-school { color: #38bdf8; }
+    .floating-academic-icons .icon-btn .icon-book { color: #6366f1; }
+    .floating-academic-icons .icon-btn .icon-trophy { color: #f59e42; }
+    .floating-academic-icons .icon-btn .icon-calendar { color: #10b981; }
+    .floating-academic-icons .icon-btn:nth-child(1) {
+        left: 10vw; top: 12vh;
+        animation-delay: 0s;
+        animation-duration: 17s;
+    }
+    .floating-academic-icons .icon-btn:nth-child(2) {
+        left: 80vw; top: 22vh;
+        animation-delay: 3s;
+        animation-duration: 19s;
+    }
+    .floating-academic-icons .icon-btn:nth-child(3) {
+        left: 25vw; top: 75vh;
+        animation-delay: 6s;
+        animation-duration: 16s;
+    }
+    .floating-academic-icons .icon-btn:nth-child(4) {
+        left: 65vw; top: 85vh;
+        animation-delay: 9s;
+        animation-duration: 20s;
+    }
+    @keyframes floatXY {
+        0% { transform: translate(0, 0) scale(1) rotate(0deg); }
+        15% { transform: translate(40px, -30px) scale(1.08) rotate(8deg); }
+        35% { transform: translate(-30px, 40px) scale(0.95) rotate(-6deg); }
+        55% { transform: translate(60px, 60px) scale(1.12) rotate(12deg); }
+        75% { transform: translate(-50px, -50px) scale(1.05) rotate(-10deg); }
+        100% { transform: translate(0, 0) scale(1) rotate(0deg); }
+    }
+    .profile-banner-gradient {
+        background: linear-gradient(120deg, #38bdf8 0%, #6366f1 50%, #a21caf 100%);
+        background-size: 200% 200%;
+        animation: gradientBG 12s ease-in-out infinite;
+    }
+    @keyframes gradientBG {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+    .tab-button-v2 {
+        transition: all 0.2s cubic-bezier(.4,0,.2,1);
+        box-shadow: 0 1px 4px 0 rgba(56,189,248,0.08);
+        font-size: 1rem;
+        padding: 0.6rem 1.2rem;
+    }
+    @media (max-width: 640px) {
+        .tab-button-v2 {
+            font-size: 0.85rem;
+            padding: 0.4rem 0.7rem;
+        }
+    }
+    .info-item {
+        border-radius: 0.75rem;
+        background: #f8fafc;
+        padding: 1rem 1.25rem;
+        margin-bottom: 0.5rem;
+        box-shadow: 0 1px 4px 0 rgba(56,189,248,0.04);
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        word-break: break-word;
+    }
+    @media (max-width: 640px) {
+        .info-item {
+            padding: 0.7rem 0.6rem;
+            font-size: 0.95rem;
+        }
+    }
+    .data-label {
+        color: #64748b;
+        font-size: 0.95rem;
+        font-weight: 500;
+    }
+    .data-value {
+        color: #0f172a;
+        font-size: 1.05rem;
+        font-weight: 600;
+    }
+    @media (max-width: 640px) {
+        .data-label, .data-value {
+            font-size: 0.9rem;
+        }
+    }
+    .status-badge {
+        border-radius: 9999px;
+        padding: 0.25rem 0.75rem;
+        font-size: 0.85rem;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3em;
+    }
+    @media (max-width: 640px) {
+        .status-badge {
+            font-size: 0.75rem;
+            padding: 0.18rem 0.5rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl w-full mx-auto space-y-8 animate-fade-in-down px-2 sm:px-4 md:px-6 lg:px-8" x-data="{ activeTab: 'shaxsiy' }">
+    <div class="floating-academic-icons" style="font-size: 80px !important;" aria-hidden="true">
+     
+        <span class="icon-btn"><ion-icon name="book-outline" class="icon-book"></ion-icon></span>
+        <span class="icon-btn"><ion-icon name="trophy-outline" class="icon-trophy"></ion-icon></span>
+        <span class="icon-btn"><ion-icon name="calendar-outline" class="icon-calendar"></ion-icon></span>
+        <span class="icon-btn"><ion-icon name="pencil-outline" class="icon-pencil"></ion-icon></span>
+        <span class="icon-btn"><ion-icon name="medal-outline" class="icon-medal"></ion-icon></span>
+        <span class="icon-btn"><ion-icon name="globe-outline" class="icon-globe"></ion-icon></span>
+        <span class="icon-btn"><ion-icon name="bookmarks-outline" class="icon-bookmarks"></ion-icon></span>
+        <span class="icon-btn"><ion-icon name="bulb-outline" class="icon-bulb"></ion-icon></span>
+        <span class="icon-btn"><ion-icon name="bar-chart-outline" class="icon-bar-chart"></ion-icon></span>
+        <span class="icon-btn"><ion-icon name="mic-outline" class="icon-mic"></ion-icon></span>
+        <span class="icon-btn"><ion-icon name="color-palette-outline" class="icon-color-palette"></ion-icon></span>
+        <span class="icon-btn"><ion-icon name="calculator-outline" class="icon-calculator"></ion-icon></span>
+        <span class="icon-btn"><ion-icon name="document-text-outline" class="icon-document"></ion-icon></span>
+        <span class="icon-btn"><ion-icon name="briefcase-outline" class="icon-briefcase"></ion-icon></span>
+        <span class="icon-btn"><ion-icon name="ribbon-outline" class="icon-ribbon"></ion-icon></span>
+             
+       
+    </div>
+    <section class="bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden relative">
+        <div class="profile-banner-gradient h-48 sm:h-56 relative flex items-end justify-between px-8 pb-4">
+            <div class="flex items-center gap-3">
+                <ion-icon name="star" class="text-yellow-400 text-3xl animate-spin-slow"></ion-icon>
+                <span class="text-white text-lg font-bold drop-shadow">NSPI HEMIS</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <ion-icon name="shield-checkmark" class="text-emerald-400 text-2xl"></ion-icon>
+                <span class="text-white/80 text-xs bg-black/30 px-2 py-1 rounded-full">ID: {{ student.student_id_number|default_if_none:"-" }}</span>
+            </div>
+        </div>
+        <div class="px-8 py-6 relative -mt-24 flex flex-col sm:flex-row items-center sm:items-end gap-8">
+            <div class="flex-shrink-0 relative group">
+                <div class="w-40 h-40 rounded-full border-4 border-white bg-slate-200 shadow-2xl flex items-center justify-center overflow-hidden relative z-10">
+                    {% if student.image_url %}
+                        <img src="{{ student.image_url }}" alt="{{ student.full_name_api|default:'Talaba rasmi' }}" class="w-full h-full object-cover">
+                    {% else %}
+                        <span class="text-7xl font-semibold text-slate-500">
+                            {{ student.first_name|default_if_none:student.username|default:"T"|first|upper }}
+                        </span>
+                    {% endif %}
+                </div>
+                <div class="absolute -inset-2 bg-sky-500/10 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-0"></div>
+            </div>
+            <div class="flex-grow text-center sm:text-left">
+                <h1 class="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2 justify-center sm:justify-start">
+                    <ion-icon name="person-circle" class="text-sky-500 text-2xl"></ion-icon>
+                    {{ student.full_name_api|default_if_none:student.username|default:"Noma'lum Talaba" }}
+                </h1>
+                <div class="flex flex-wrap justify-center sm:justify-start gap-2 mt-2">
+                    <span class="text-xs font-medium bg-sky-100 text-sky-800 px-2.5 py-1 rounded-full flex items-center gap-1"><ion-icon name="people" class="text-sky-400"></ion-icon>{{ student.group_name_api|default:"Guruh" }}</span>
+                    <span class="text-xs font-medium bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-full flex items-center gap-1"><ion-icon name="barbell" class="text-emerald-400"></ion-icon>{{ student.level_name|default:"Kurs" }}</span>
+                    {% if student.avg_gpa %}
+                    <span class="text-xs font-medium bg-purple-100 text-purple-800 px-2.5 py-1 rounded-full flex items-center gap-1"><ion-icon name="trophy" class="text-purple-400"></ion-icon>GPA: {{ student.avg_gpa }}</span>
+                    {% endif %}
+                </div>
+                <div class="flex flex-wrap justify-center sm:justify-start gap-2 mt-2">
+                    <span class="inline-flex items-center gap-1 text-xs bg-slate-100 text-slate-700 px-2.5 py-1 rounded-full"><ion-icon name="mail" class="text-sky-400"></ion-icon>{{ student.email|default:"-" }}</span>
+                    <span class="inline-flex items-center gap-1 text-xs bg-slate-100 text-slate-700 px-2.5 py-1 rounded-full"><ion-icon name="call" class="text-emerald-400"></ion-icon>{{ student.phone|default:"-" }}</span>
+                </div>
+            </div>
+            <div class="flex-shrink-0">
+                <a href="{% url 'logout' %}" class="inline-flex items-center px-5 py-3 border border-transparent text-base font-semibold rounded-xl shadow-md text-white bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all">
+                    <ion-icon name="log-out-outline" class="mr-2 text-lg"></ion-icon>Chiqish
+                </a>
+            </div>
+        </div>
+        <div class="w-full px-4 pb-4">
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div class="bg-gradient-to-br from-sky-100 to-white rounded-xl shadow p-4 flex flex-col items-center">
+                    <ion-icon name="trophy" class="text-yellow-400 text-2xl mb-1"></ion-icon>
+                    <span class="text-xs text-slate-500">GPA</span>
+                    <span class="font-bold text-lg text-sky-700">{{ student.avg_gpa|default_if_none:"0.0" }}</span>
+                </div>
+                <div class="bg-gradient-to-br from-emerald-100 to-white rounded-xl shadow p-4 flex flex-col items-center">
+                    <ion-icon name="people" class="text-emerald-400 text-2xl mb-1"></ion-icon>
+                    <span class="text-xs text-slate-500">Guruh</span>
+                    <span class="font-bold text-lg text-emerald-700">{{ student.group_name_api|default:"-" }}</span>
+                </div>
+                <div class="bg-gradient-to-br from-indigo-100 to-white rounded-xl shadow p-4 flex flex-col items-center">
+                    <ion-icon name="barbell" class="text-indigo-400 text-2xl mb-1"></ion-icon>
+                    <span class="text-xs text-slate-500">Kurs</span>
+                    <span class="font-bold text-lg text-indigo-700">{{ student.level_name|default:"-" }}</span>
+                </div>
+                <div class="bg-gradient-to-br from-fuchsia-100 to-white rounded-xl shadow p-4 flex flex-col items-center">
+                    <ion-icon name="call" class="text-fuchsia-400 text-2xl mb-1"></ion-icon>
+                    <span class="text-xs text-slate-500">Telefon</span>
+                    <span class="font-bold text-lg text-fuchsia-700">{{ student.phone|default:"-" }}</span>
+                </div>
+            </div>
+        </div>
+    </section>
+    <div class="bg-white rounded-xl shadow-md border border-slate-200 p-2 sm:p-3 sticky top-20 sm:top-24 z-30">
+        <nav class="tab-nav flex gap-3 overflow-x-auto" aria-label="Tabs">
+            <button @click="activeTab = 'shaxsiy'" :class="{ 'tab-button-active': activeTab === 'shaxsiy', 'tab-button-inactive': activeTab !== 'shaxsiy' }" class="tab-button-v2 flex items-center gap-2 px-5 py-2.5 rounded-lg border-2">
+                <ion-icon name="person-outline" class="text-lg"></ion-icon>Shaxsiy
+            </button>
+            <button @click="activeTab = 'oquv'" :class="{ 'tab-button-active': activeTab === 'oquv', 'tab-button-inactive': activeTab !== 'oquv' }" class="tab-button-v2 flex items-center gap-2 px-5 py-2.5 rounded-lg border-2">
+                <ion-icon name="school-outline" class="text-lg"></ion-icon>O'quv
+            </button>
+            <button @click="activeTab = 'aloqa'" :class="{ 'tab-button-active': activeTab === 'aloqa', 'tab-button-inactive': activeTab !== 'aloqa' }" class="tab-button-v2 flex items-center gap-2 px-5 py-2.5 rounded-lg border-2">
+                <ion-icon name="call-outline" class="text-lg"></ion-icon>Aloqa
+            </button>
+            <button @click="activeTab = 'tizim'" :class="{ 'tab-button-active': activeTab === 'tizim', 'tab-button-inactive': activeTab !== 'tizim' }" class="tab-button-v2 flex items-center gap-2 px-5 py-2.5 rounded-lg border-2">
+                <ion-icon name="cog-outline" class="text-lg"></ion-icon>Tizim
+            </button>
+        </nav>
+    </div>
+    <div class="pt-2">
+        <div x-show="activeTab === 'shaxsiy'" x-transition class="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden card-reveal">
+            <div class="px-6 py-4 bg-gradient-to-r from-sky-50 to-white border-b border-slate-200">
+                <h3 class="text-lg font-bold text-sky-700 flex items-center gap-2">
+                    <ion-icon name="id-card-outline" class="text-sky-500 text-xl"></ion-icon>Shaxsiy va Pasport Ma'lumotlari
+                </h3>
+            </div>
+            <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                {% include "auth_app/partials/_info_item.html" with label="To'liq F.I.Sh." value=student.full_name_api %}
+                {% include "auth_app/partials/_info_item.html" with label="Qisqa F.I.Sh." value=student.short_name_api %}
+                {% include "auth_app/partials/_info_item.html" with label="Tug'ilgan sana" value=student.get_birth_date_display %}
+                {% include "auth_app/partials/_info_item.html" with label="Jinsi" value=student.gender_name %}
+                {% include "auth_app/partials/_info_item.html" with label="Pasport PINFL" value=student.passport_pin %}
+                {% include "auth_app/partials/_info_item.html" with label="Pasport Seriya/Raqami" value=student.passport_number %}
+                {% include "auth_app/partials/_info_item.html" with label="Ijtimoiy Kategoriya" value=student.social_category_name %}
+                {% include "auth_app/partials/_info_item.html" with label="Turar Joyi" value=student.accommodation_name %}
+            </div>
+        </div>
+        <div x-show="activeTab === 'oquv'" x-transition class="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden card-reveal card-reveal-delay-1">
+            <div class="px-6 py-4 bg-gradient-to-r from-indigo-50 to-white border-b border-slate-200">
+                <h3 class="text-lg font-bold text-indigo-700 flex items-center gap-2">
+                    <ion-icon name="library-outline" class="text-indigo-500 text-xl"></ion-icon>Akademik Ma'lumotlar
+                </h3>
+            </div>
+            <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                {% include "auth_app/partials/_info_item.html" with label="Universitet" value=student.university_name_api %}
+                {% include "auth_app/partials/_info_item.html" with label="Fakultet" value=student.faculty_name_api %}
+                {% include "auth_app/partials/_info_item.html" with label="Mutaxassislik" value=student.specialty_name_api %}
+                <div class="info-item md:col-span-2">
+                     <span class="data-label">Mutaxassislik Kodi (API):</span>
+                     <code class="text-xs bg-slate-100 p-1 rounded break-all font-mono text-slate-600">{{ student.specialty_code_api|default_if_none:"-" }}</code>
+                </div>
+                {% include "auth_app/partials/_info_item.html" with label="Ta'lim Turi" value=student.education_type_name %}
+                {% include "auth_app/partials/_info_item.html" with label="Ta'lim Shakli" value=student.education_form_name %}
+                {% include "auth_app/partials/_info_item.html" with label="Kurs (Bosqich)" value=student.level_name %}
+                {% include "auth_app/partials/_info_item.html" with label="Guruh" value=student.group_name_api %}
+                {% include "auth_app/partials/_info_item.html" with label="Guruh Ta'lim Tili" value=student.group_education_lang_name %}
+                {% include "auth_app/partials/_info_item.html" with label="Asosiy Ta'lim Tili" value=student.education_lang_name %}
+                <div class="info-item">
+                    <span class="data-label">Joriy Semestr:</span>
+                    <div class="flex items-center space-x-2">
+                        <span class="data-value">{{ student.semester_name_api|default_if_none:"-" }}</span>
+                        {% if student.semester_is_current %}
+                            <span class="status-badge status-badge-active"><ion-icon name="checkmark-circle" class="text-emerald-500"></ion-icon>Aktiv</span>
+                        {% elif student.semester_is_current == False %}
+                            <span class="status-badge status-badge-inactive"><ion-icon name="close-circle" class="text-yellow-500"></ion-icon>Aktiv emas</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% include "auth_app/partials/_info_item.html" with label="O'quv Yili (Semestr)" value=student.semester_education_year_name %}
+                {% include "auth_app/partials/_info_item.html" with label="To'lov Shakli" value=student.payment_form_name %}
+                <div class="info-item">
+                    <span class="data-label">Talaba Holati:</span>
+                    <div class="flex items-center space-x-2">
+                        <span class="data-value">{{ student.student_status_name|default_if_none:"-" }}</span>
+                        {% if student.student_status_code == '11' %}
+                            <span class="status-badge status-badge-active"><ion-icon name="rocket" class="text-emerald-500"></ion-icon>O'qimoqda</span>
+                        {% elif student.student_status_name %}
+                             <span class="status-badge status-badge-other">{{ student.student_status_name }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="info-item md:col-span-2">
+                    <span class="data-label">O'rtacha GPA:</span>
+                    <div class="flex items-center space-x-3 mt-1">
+                        <span class="text-3xl font-bold text-sky-600 flex items-center gap-1"><ion-icon name="trophy" class="text-yellow-400"></ion-icon>{{ student.avg_gpa|default_if_none:"0.0" }}</span>
+                        <div class="w-full max-w-xs">
+                            <div class="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
+                                <div class="gpa-progress-bar h-2.5 rounded-full" style="width: {{ gpa_percentage|default:0 }}%;"></div>
+                            </div>
+                            <span class="text-xs text-slate-500 mt-0.5 block">Maksimal 5.0 ball</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div x-show="activeTab === 'aloqa'" x-transition class="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden card-reveal card-reveal-delay-2">
+            <div class="px-6 py-4 bg-gradient-to-r from-emerald-50 to-white border-b border-slate-200">
+                <h3 class="text-lg font-bold text-emerald-700 flex items-center gap-2">
+                    <ion-icon name="chatbubbles-outline" class="text-emerald-500 text-xl"></ion-icon>Aloqa va Manzil
+                </h3>
+            </div>
+            <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                {% include "auth_app/partials/_info_item_link.html" with label="Email" value=student.email type="email" %}
+                {% include "auth_app/partials/_info_item_link.html" with label="Telefon" value=student.phone type="tel" %}
+                <div class="info-item md:col-span-2">
+                     <span class="data-label">Manzil (API):</span>
+                     <span class="data-value flex items-center gap-1"><ion-icon name="location" class="text-sky-400"></ion-icon>{{ student.address_api|default_if_none:"-" }}</span>
+                </div>
+                {% include "auth_app/partials/_info_item.html" with label="Davlat" value=student.country_name_api %}
+                {% include "auth_app/partials/_info_item.html" with label="Viloyat" value=student.province_name_api %}
+                {% include "auth_app/partials/_info_item.html" with label="Tuman" value=student.district_name_api %}
+            </div>
+        </div>
+        <div x-show="activeTab === 'tizim'" x-transition class="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden card-reveal card-reveal-delay-3">
+            <div class="px-6 py-4 bg-gradient-to-r from-fuchsia-50 to-white border-b border-slate-200">
+                <h3 class="text-lg font-bold text-fuchsia-700 flex items-center gap-2">
+                    <ion-icon name="hardware-chip-outline" class="text-fuchsia-500 text-xl"></ion-icon>Tizimga oid Ma'lumotlar
+                </h3>
+            </div>
+            <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                 <div class="info-item">
+                    <span class="data-label">Parol Yaroqliligi (API):</span>
+                    <span class="data-value">
+                        {% if student.password_is_valid_api %}
+                            <span class="status-badge status-badge-active"><ion-icon name="checkmark-circle" class="text-emerald-500"></ion-icon>Yaroqli</span>
+                        {% elif student.password_is_valid_api == False %}
+                            <span class="status-badge status-badge-inactive"><ion-icon name="close-circle" class="text-yellow-500"></ion-icon>Yaroqsiz</span>
+                        {% else %}<span class="data-value-empty">-</span>{% endif %}
+                    </span>
+                </div>
+                <div class="info-item">
+                    <span class="data-label">API Hash:</span>
+                    <code class="text-xs bg-slate-100 p-1 rounded break-all font-mono text-slate-600 data-value">
+                        API ma'lumotlar sir, faqat adminlar ko'rishi mumkin.
+                        {{ student.last_login_api|date:"d-F-Y, H:i"|default_if_none:"-" }}
+                    </code>
+                </div>
+                 <div class="info-item md:col-span-2">
+                    <span class="data-label">Tasdiqlash Havolasi (API):</span>
+                    <span class="data-value">
+                        <span class="italic text-slate-400">Sir tutilgan va API ma'lumotlari ishlab turibdi</span>
+                    </span>
+                </div>
+                <div class="info-item">
+                    <span class="data-label">Oxirgi Kirish (API):</span>
+                    <span class="data-value flex items-center gap-1"><ion-icon name="log-in-outline" class="text-indigo-400"></ion-icon>{{ student.last_login_api|date:"d-F-Y, H:i"|default_if_none:"-" }}</span>
+                </div>
+                 <div class="info-item">
+                    <span class="data-label">Profil Yaratilgan:</span>
+                    <span class="data-value flex items-center gap-1"><ion-icon name="calendar" class="text-sky-400"></ion-icon>{{ student.created_at|date:"d-F-Y, H:i"|default_if_none:"-" }}</span>
+                </div>
+                 <div class="info-item">
+                    <span class="data-label">Oxirgi Yangilanish:</span>
+                    <span class="data-value flex items-center gap-1"><ion-icon name="refresh" class="text-fuchsia-400"></ion-icon>{{ student.updated_at|date:"d-F-Y, H:i"|default_if_none:"-" }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

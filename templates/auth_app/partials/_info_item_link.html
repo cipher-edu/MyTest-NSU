@@ -1,0 +1,16 @@
+<div class="info-item">
+    <span class="info-label">{{ label|default:"Noma'lum" }}:</span>
+    <span class="info-value">
+        {% if value %}
+            {% if type == "email" %}
+                <a href="mailto:{{ value }}">{{ value }}</a>
+            {% elif type == "tel" %}
+                <a href="tel:{{ value }}">{{ value }}</a>
+            {% else %}
+                <a href="{{ value }}" target="_blank" title="{{ value }}">{{ value|urlizetrunc:35 }}</a>
+            {% endif %}
+        {% else %}
+            -
+        {% endif %}
+    </span>
+</div>

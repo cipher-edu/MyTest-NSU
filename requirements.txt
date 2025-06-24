@@ -1,0 +1,50 @@
+# requirements.txt
+
+# --- Django Framework & Asosiy Bog'liqliklar ---
+Django==4.2.20
+django-environ==0.11.2
+asgiref==3.7.2
+sqlparse==0.4.4
+tzdata==2024.1
+
+# --- Ma'lumotlar Bazasi (MySQL) ---
+# Agar PostgreSQL ishlatsangiz, buni "psycopg2-binary" ga almashtiring
+mysqlclient==2.2.7
+
+# --- Ma'lumotlar Bazasi (PostgreSQL) ---
+psycopg2-binary==2.9.9
+
+# --- Asinxron Vazifalar (Celery) ---
+celery==5.3.6
+django-celery-results==2.5.1
+redis==5.0.4  # Redis brokeri va natijalar uchun
+kombu==5.3.7
+billiard==4.2.0
+vine==5.1.0
+
+# --- Kesh (Redis) ---
+django-redis==5.4.0
+
+# --- API (Django REST Framework) ---
+djangorestframework==3.16.0
+djangorestframework_simplejwt==5.5.0
+PyJWT==2.9.0
+
+# --- Admin Paneli ---
+django-jazzmin==2.6.0
+
+# --- Static Fayllar va WSGI/ASGI Server ---
+whitenoise==6.6.0
+gunicorn         # Production server uchun (tavsiya etiladi)
+
+# --- Boshqa yordamchi kutubxonalar ---
+# Pillow rasmlar bilan ishlash uchun kerak bo'lishi mumkin (agar modellar ImageField ishlatsa)
+Pillow==11.2.1
+requests==2.32.4 # Tashqi API bilan ishlash uchun
+urllib3==1.26.18
+certifi==2024.7.4
+charset-normalizer==3.3.2
+idna==3.6
+six==1.16.0
+python-dateutil==2.8.2
+qrcode==7.4.2

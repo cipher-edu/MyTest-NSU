@@ -1,0 +1,516 @@
+{% load static %}
+<!doctype html>
+<html lang="uz" class="scroll-smooth">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block page_title %}Bosh sahifa{% endblock %} - NSPI HEMIS</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script type="module" src="https://cdn.jsdelivr.net/npm/ionicons@7.2.1/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://cdn.jsdelivr.net/npm/ionicons@7.2.1/dist/ionicons/ionicons.js"></script>
+
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography,aspect-ratio,line-clamp"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        secondary: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            300: '#cbd5e1',
+                            400: '#94a3b8',
+                            500: '#64748b',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        serif: ['Playfair Display', 'serif'],
+                    },
+                    animation: {
+                        'fade-in-down': 'fadeInDown 0.5s ease-out',
+                        'fade-in-up': 'fadeInUp 0.5s ease-out',
+                        'pulse': 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'spin': 'spin 1s linear infinite'
+                    },
+                    keyframes: {
+                        fadeInDown: {
+                            '0%': { opacity: '0', transform: 'translateY(-10px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        },
+                        fadeInUp: {
+                            '0%': { opacity: '0', transform: 'translateY(10px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        },
+                        spin: {
+                            '0%': { transform: 'rotate(0deg)' },
+                            '100%': { transform: 'rotate(360deg)' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+
+        body {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            @apply bg-slate-50 text-slate-800;
+        }
+        
+        .navbar-sticky {
+            @apply fixed top-0 left-0 right-0 z-40;
+            background-color: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            @apply border-b border-slate-200/80;
+            transition: all 0.3s ease;
+        }
+        
+        .navbar-scrolled {
+            @apply shadow-sm bg-white/98;
+        }
+        
+        .messages-container {
+            @apply fixed top-24 right-6 z-50;
+            max-width: min(420px, 90vw);
+        }
+        
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            @apply w-2 h-2;
+        }
+        ::-webkit-scrollbar-track {
+            @apply bg-transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            @apply bg-slate-300 rounded-full;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            @apply bg-slate-400;
+        }
+        
+        /* Alpine.js */
+        [x-cloak] { display: none !important; }
+        
+        /* Navigation links */
+        .nav-link-desktop {
+            @apply flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors;
+            @apply text-slate-700 hover:bg-slate-100 hover:text-primary-600;
+        }
+        .nav-link-active {
+            @apply bg-primary-50 text-primary-700 font-semibold;
+        }
+        .nav-link-mobile {
+            @apply block px-3 py-2 rounded-lg text-base font-medium transition-colors;
+            @apply text-slate-700 hover:bg-slate-100 hover:text-primary-600;
+        }
+        .nav-link-mobile-active {
+            @apply bg-primary-50 text-primary-700 font-semibold;
+        }
+        .user-menu-item {
+            @apply block w-full text-left px-4 py-2.5 text-sm rounded-md transition-colors;
+            @apply text-slate-700 hover:bg-slate-100 hover:text-slate-900 flex items-center;
+        }
+            /* Yangi animatsiyalar */
+    @keyframes fadeIn {
+        0% { opacity: 0; transform: translateY(10px); }
+        100% { opacity: 1; transform: translateY(0); }
+    }
+    
+    @keyframes cardReveal {
+        0% { opacity: 0; transform: scale(0.95); }
+        100% { opacity: 1; transform: scale(1); }
+    }
+    
+    .animate-fade-in {
+        animation: fadeIn 0.6s ease-out forwards;
+    }
+    
+    .card-reveal {
+        animation: cardReveal 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+    
+    .card-reveal-delay-1 { animation-delay: 0.1s; }
+    .card-reveal-delay-2 { animation-delay: 0.2s; }
+    .card-reveal-delay-3 { animation-delay: 0.3s; }
+    
+    /* Gradient fonlar */
+    .gradient-bg-primary {
+        background: linear-gradient(135deg, theme('colors.sky.600') 0%, theme('colors.indigo.700') 100%);
+    }
+    
+    /* Tablar uchun yangi stillar */
+    .tab-button-v2 {
+        @apply flex items-center px-4 py-2.5 text-sm font-medium rounded-lg border-b-2 mx-1 whitespace-nowrap transition-all;
+    }
+    
+    /* Status badge'lar */
+    .status-badge {
+        @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+    }
+    
+    .status-badge-active {
+        @apply bg-green-100 text-green-800;
+    }
+    
+    .status-badge-inactive {
+        @apply bg-yellow-100 text-yellow-800;
+    }
+    
+    .status-badge-other {
+        @apply bg-slate-100 text-slate-800;
+    }
+    
+    /* Ma'lumot elementlari */
+    .data-label {
+        @apply text-sm font-medium text-slate-500 mb-1 sm:mb-0 sm:w-2/5 lg:w-1/3 flex-shrink-0;
+    }
+    
+    .data-value {
+        @apply text-sm text-slate-800 font-medium sm:w-3/5 lg:w-2/3 break-words;
+    }
+    
+    .data-value-empty {
+        @apply text-slate-400;
+    }
+    
+    /* Progress bar */
+    .gpa-progress {
+        @apply w-full bg-slate-200 rounded-full h-2.5 overflow-hidden;
+    }
+    
+    .gpa-progress-bar {
+        @apply h-2.5 rounded-full;
+        background: linear-gradient(90deg, theme('colors.sky.500'), theme('colors.indigo.500'));
+    }
+        /* Custom utilities */
+        .text-shadow {
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+        .shadow-soft {
+            box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.08);
+        }
+        .shadow-card {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        
+        /* Survey specific styles */
+        .survey-card {
+            @apply bg-white rounded-2xl shadow-card border border-gray-100 overflow-hidden;
+            transition: all 0.3s ease;
+        }
+        .survey-card:hover {
+            @apply shadow-md -translate-y-1;
+        }
+        .survey-card-active {
+            @apply border-blue-200;
+        }
+        .survey-card-completed {
+            @apply border-green-100;
+        }
+        
+        /* Question styles */
+        .question-card {
+            @apply p-4 bg-white rounded-xl shadow-sm cursor-pointer transition-all duration-200;
+            border: 1px solid transparent;
+        }
+        .question-card:hover {
+            @apply border-blue-100;
+        }
+        .question-card.selected {
+            @apply border-blue-300 bg-blue-50;
+        }
+        
+        /* Progress bar */
+        .progress-step {
+            @apply w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium;
+            @apply bg-gray-200 text-gray-600 transition-all duration-300;
+        }
+        .progress-step.active {
+            @apply bg-blue-600 text-white ring-2 ring-blue-500 ring-offset-2;
+        }
+        .progress-step.completed {
+            @apply bg-green-500 text-white;
+        }
+        
+        /* Form elements */
+        .form-input {
+            @apply w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors;
+        }
+        .form-textarea {
+            @apply w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors;
+        }
+        .form-checkbox {
+            @apply h-5 w-5 border border-gray-300 rounded focus:ring-blue-500 text-blue-600 transition-colors;
+        }
+        
+        /* Buttons */
+        .btn-primary {
+            @apply px-6 py-3 bg-blue-600 rounded-xl font-medium text-white hover:bg-blue-700 transition-colors;
+        }
+        .btn-primary:disabled {
+            @apply bg-gray-300 cursor-not-allowed;
+        }
+        .btn-secondary {
+            @apply px-6 py-3 bg-white border border-gray-300 rounded-xl font-medium text-gray-700 hover:bg-gray-50 transition-colors;
+        }
+        .btn-success {
+            @apply px-6 py-3 bg-green-600 rounded-xl font-medium text-white hover:bg-green-700 transition-colors;
+        }
+        .btn-danger {
+            @apply px-6 py-3 bg-red-600 rounded-xl font-medium text-white hover:bg-red-700 transition-colors;
+        }
+        
+        /* Animations */
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Skeleton loader */
+        .skeleton {
+            @apply bg-gray-200 rounded-full animate-pulse;
+        }
+    </style>
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="flex flex-col min-h-screen pt-16 sm:pt-20">
+
+    <!-- Header/Navigation -->
+    <header x-data="{ mobileMenuOpen: false, userMenuOpen: false, isScrolled: false }" 
+            @scroll.window="isScrolled = (window.pageYOffset > 10)"
+            class="navbar-sticky"
+            :class="{ 'navbar-scrolled': isScrolled }">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16 sm:h-20">
+                <!-- Logo -->
+                <div class="flex items-center">
+                    <a href="{% url 'home' %}" class="flex items-center group">
+                        <ion-icon name="logo-electron" class="text-3xl sm:text-4xl mr-2 text-primary-600 group-hover:text-primary-500 transition-colors"></ion-icon>
+                        <span class="text-2xl sm:text-3xl font-bold font-serif text-slate-900">NSU MyTest </span>
+                    </a>
+                </div>
+                
+                <!-- Desktop Navigation -->
+                <div class="hidden md:flex items-center space-x-1">
+                    <a href="{% url 'home' %}" class="nav-link-desktop {% if request.resolver_match.url_name == 'home' %}nav-link-active{% endif %}">
+                        <ion-icon name="home-outline" class="text-xl"></ion-icon>
+                        <span class="ml-1.5">Bosh sahifa</span>
+                    </a>
+                    {% if request.session.api_token and request.session.student_db_id %}
+                    <a href="{% url 'dashboard' %}" class="nav-link-desktop {% if request.resolver_match.url_name == 'dashboard' %}nav-link-active{% endif %}">
+                        <ion-icon name="person-outline" class="text-xl"></ion-icon>
+                        <span class="ml-1.5">Profilim</span>
+                    </a>
+                    
+                    {% endif %}
+                </div>
+                
+                <!-- User Menu -->
+                <div class="flex items-center">
+                    <div class="hidden md:block">
+                        {% if request.session.api_token and request.session.student_db_id %}
+                            <div class="ml-3 relative">
+                                <button @click="userMenuOpen = !userMenuOpen" type="button" 
+                                        class="max-w-xs bg-slate-100 hover:bg-slate-200 p-1.5 rounded-full flex items-center text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+                                    <span class="sr-only">Foydalanuvchi menyusini ochish</span>
+                                    <span class="inline-flex items-center justify-center h-8 w-8 rounded-full bg-primary-600 text-white">
+                                        <span class="text-sm font-medium leading-none">
+                                            {{ request.session.username_display|default:"U"|first|upper }}
+                                        </span>
+                                    </span>
+                                </button>
+                                
+                                <!-- User Dropdown -->
+                                <div x-show="userMenuOpen" @click.outside="userMenuOpen = false"
+                                     x-transition:enter="transition ease-out duration-100"
+                                     x-transition:enter-start="opacity-0 scale-95"
+                                     x-transition:enter-end="opacity-100 scale-100"
+                                     x-transition:leave="transition ease-in duration-75"
+                                     x-transition:leave-start="opacity-100 scale-100"
+                                     x-transition:leave-end="opacity-0 scale-95"
+                                     class="origin-top-right absolute right-0 mt-2 w-56 rounded-lg shadow-lg bg-white ring-1 ring-slate-200 focus:outline-none py-1.5 z-50" x-cloak>
+                                    <div class="px-4 py-2 border-b border-slate-100">
+                                        <p class="text-xs text-slate-500">Kirgan foydalanuvchi:</p>
+                                        <p class="text-sm font-semibold text-slate-900 truncate">
+                                            {{ request.session.username_display|default:"Foydalanuvchi" }}
+                                        </p>
+                                    </div>
+                                    <a href="{% url 'dashboard' %}" class="user-menu-item">
+                                        <ion-icon name="speedometer-outline" class="mr-2.5"></ion-icon>
+                                        Boshqaruv paneli
+                                    </a>
+                                    
+                                    <a href="{% url 'logout' %}" class="user-menu-item text-red-600 hover:bg-red-50 hover:text-red-700">
+                                        <ion-icon name="log-out-outline" class="mr-2.5"></ion-icon>
+                                        Chiqish
+                                    </a>
+                                </div>
+                            </div>
+                        {% else %}
+                            <a href="{% url 'login' %}" class="px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
+                                Kirish
+                            </a>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Mobile Menu Button -->
+                    <div class="-mr-2 flex md:hidden">
+                        <button @click="mobileMenuOpen = !mobileMenuOpen" type="button" 
+                                class="ml-2 bg-transparent p-2 inline-flex items-center justify-center rounded-md text-slate-500 hover:text-slate-700 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500 transition-colors">
+                            <span class="sr-only">Asosiy menyuni ochish</span>
+                            <ion-icon :name="mobileMenuOpen ? 'close-sharp' : 'menu-sharp'" class="h-6 w-6"></ion-icon>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Menu -->
+        <div class="md:hidden" x-show="mobileMenuOpen" @click.away="mobileMenuOpen = false" x-cloak
+             x-transition:enter="transition ease-out duration-200 origin-top"
+             x-transition:enter-start="opacity-0 scale-y-90"
+             x-transition:enter-end="opacity-100 scale-y-100"
+             x-transition:leave="transition ease-in duration-150 origin-top"
+             x-transition:leave-start="opacity-100 scale-y-100"
+             x-transition:leave-end="opacity-0 scale-y-90">
+            <div class="pt-2 pb-3 space-y-1 px-2 sm:px-3">
+                <a href="{% url 'home' %}" class="nav-link-mobile {% if request.resolver_match.url_name == 'home' %}nav-link-mobile-active{% endif %}">
+                    Bosh sahifa
+                </a>
+                
+            </div>
+            
+            {% if request.session.api_token and request.session.student_db_id %}
+                <div class="pt-4 pb-3 border-t border-slate-200">
+                    <div class="flex items-center px-5">
+                        <div class="flex-shrink-0">
+                            <span class="inline-flex items-center justify-center h-10 w-10 rounded-full bg-primary-600 text-white">
+                                <span class="text-md font-medium leading-none">
+                                    {{ request.session.username_display|default:"U"|first|upper }}
+                                </span>
+                            </span>
+                        </div>
+                        <div class="ml-3">
+                            <div class="text-base font-semibold text-slate-800">
+                                {{ request.session.username_display|default:"Foydalanuvchi" }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-3 space-y-1 px-2">
+                        <a href="{% url 'dashboard' %}" class="nav-link-mobile">
+                            Boshqaruv paneli
+                        </a>
+                        
+                        <a href="{% url 'logout' %}" class="block rounded-lg px-3 py-2 text-base font-medium text-red-600 hover:bg-red-100 hover:text-red-700">
+                            Chiqish
+                        </a>
+                    </div>
+                </div>
+            {% else %}
+                <div class="py-3 px-2 sm:px-3 border-t border-slate-200">
+                    <a href="{% url 'login' %}" class="block w-full text-center px-4 py-2.5 rounded-lg text-base font-semibold text-white bg-primary-600 hover:bg-primary-700 transition-colors">
+                        Kirish
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+            <!-- Messages -->
+            {% if messages %}
+                <div class="messages-container space-y-3">
+                    {% for message in messages %}
+                    <div x-data="{ show: true }" x-show="show" 
+                         x-init="setTimeout(() => { if (show && $el) { $el.remove(); } }, message.tags === 'error' || message.tags === 'warning' ? 10000 : 7000)"
+                         x-transition:enter="transition ease-out duration-300"
+                         x-transition:enter-start="opacity-0 translate-x-full"
+                         x-transition:enter-end="opacity-100 translate-x-0"
+                         x-transition:leave="transition ease-in duration-300"
+                         x-transition:leave-start="opacity-100"
+                         x-transition:leave-end="opacity-0"
+                         class="rounded-xl p-4 flex items-start shadow-lg ring-1 ring-black ring-opacity-5
+                         {% if message.tags == 'error' %}bg-red-50 border-l-4 border-red-500 text-red-700
+                         {% elif message.tags == 'success' %}bg-green-50 border-l-4 border-green-500 text-green-700
+                         {% elif message.tags == 'warning' %}bg-yellow-50 border-l-4 border-yellow-500 text-yellow-700
+                         {% else %}bg-primary-50 border-l-4 border-primary-500 text-primary-700{% endif %}"
+                         role="alert">
+                        <div class="flex-shrink-0 pt-0.5">
+                            {% if message.tags == 'error' %}<ion-icon name="close-circle-outline" class="h-5 w-5 text-red-500"></ion-icon>
+                            {% elif message.tags == 'success' %}<ion-icon name="checkmark-circle-outline" class="h-5 w-5 text-green-500"></ion-icon>
+                            {% elif message.tags == 'warning' %}<ion-icon name="warning-outline" class="h-5 w-5 text-yellow-500"></ion-icon>
+                            {% else %}<ion-icon name="information-circle-outline" class="h-5 w-5 text-primary-500"></ion-icon>
+                            {% endif %}
+                        </div>
+                        <div class="ml-3 flex-1">
+                            <p class="text-sm font-medium">{{ message }}</p>
+                        </div>
+                        <div class="ml-auto pl-3">
+                            <div class="-mx-1.5 -my-1.5">
+                                <button @click="show = false; $el.closest('.rounded-xl').remove()" type="button" 
+                                        class="inline-flex rounded-md p-1.5 focus:outline-none focus:ring-2 focus:ring-offset-2 
+                                        {% if message.tags == 'error' %}bg-red-50 text-red-500 hover:bg-red-100 focus:ring-red-600 focus:ring-offset-red-50
+                                        {% elif message.tags == 'success' %}bg-green-50 text-green-500 hover:bg-green-100 focus:ring-green-600 focus:ring-offset-green-50
+                                        {% elif message.tags == 'warning' %}bg-yellow-50 text-yellow-500 hover:bg-yellow-100 focus:ring-yellow-600 focus:ring-offset-yellow-50
+                                        {% else %}bg-primary-50 text-primary-500 hover:bg-primary-100 focus:ring-primary-600 focus:ring-offset-primary-50{% endif %}">
+                                    <span class="sr-only">Yopish</span>
+                                    <ion-icon name="close-outline" class="h-5 w-5"></ion-icon>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            {% block content %}
+                <!-- Asosiy kontent shu yerda bo'ladi -->
+            {% endblock %}
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="mt-auto bg-slate-900 text-slate-400">
+        <div class="max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8 text-center text-sm">
+            <p>© {% now "Y" %} Navoiy Davlat Universiteti. barcha huquqlar himoyalangan.</p>
+            <p class="mt-1">Powered by <a href="https://www.instagram.com/nyzgroup/" target="_blank" class="text-primary-400 hover:text-primary-300">NYZ GROUP</a>.</p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script defer src="https://unpkg.com/alpinejs@3.13.10/dist/cdn.min.js"></script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

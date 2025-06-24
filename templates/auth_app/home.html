@@ -1,0 +1,268 @@
+{% extends "auth_app/base.html" %}
+
+{% block page_title %}Navoiy Davlat Pedagogika Instituti - HEMIS Tizimi{% endblock %}
+{%  load static %}
+{% block extra_css %}
+<style>
+    /* Asosiy animatsiyalar */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    @keyframes float {
+        0% { transform: translateY(0px); }
+        50% { transform: translateY(-10px); }
+        100% { transform: translateY(0px); }
+    }
+    
+    .animate-fade-in {
+        animation: fadeIn 0.8s ease-out forwards;
+    }
+    
+    .float-animation {
+        animation: float 6s ease-in-out infinite;
+    }
+    
+    /* Hero section */
+    .hero-section {
+        background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+        background-size: 200% 200%;
+        animation: gradientBG 15s ease infinite;
+    }
+    
+    @keyframes gradientBG {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+    
+    /* Kartalar */
+    .feature-card {
+        @apply bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden transition-all;
+    }
+    
+    .feature-card:hover {
+        @apply shadow-lg border-indigo-300;
+        transform: translateY(-5px);
+    }
+    
+    /* Statistik kartalar */
+    .stats-card {
+        @apply p-6 rounded-xl border border-slate-200 bg-white shadow-sm flex flex-col items-center justify-center gap-2 transition-all;
+        min-height: 120px;
+    }
+    .stats-icon {
+        @apply text-3xl mb-2 rounded-full shadow-md bg-indigo-50 p-3;
+        transition: background 0.2s;
+    }
+    .stats-card:hover .stats-icon {
+        background: #6366f1;
+        color: #fff;
+    }
+    .stats-value {
+        @apply text-3xl font-bold text-indigo-600;
+    }
+    .stats-label {
+        @apply text-sm font-medium text-slate-500 mt-1;
+    }
+    /* Hamkorlar */
+    .partners-logo {
+        filter: grayscale(1) opacity(0.7);
+        transition: filter 0.2s;
+        max-height: 48px;
+    }
+    .partners-logo:hover {
+        filter: grayscale(0) opacity(1);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="animate-fade-in">
+    <section class="hero-section text-white py-20 relative overflow-hidden">
+        <div class="absolute right-0 top-0 w-40 h-40 bg-indigo-400/20 rounded-full blur-3xl animate-pulse"></div>
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col lg:flex-row items-center">
+                <div class="lg:w-1/2 mb-10 lg:mb-0">
+                    <h1 class="text-4xl md:text-5xl font-extrabold mb-4 flex items-center gap-3">
+                        <ion-icon name="school-outline" class="text-yellow-300 animate-bounce text-4xl"></ion-icon>
+                        Navoiy Davlat Universiteti - Anti Korrupsiya Tizimi
+                    </h1>
+                    <p class="text-xl mb-6">Ta'lim sifatini oshirish va boshqarish tizimi</p>
+                    <ul class="mb-8 text-base text-indigo-100 space-y-1">
+                        <li><ion-icon name="checkmark-circle" class="text-emerald-300 mr-2"></ion-icon> Zamonaviy raqamli boshqaruv</li>
+                        <li><ion-icon name="checkmark-circle" class="text-emerald-300 mr-2"></ion-icon> Talaba va o'qituvchi uchun qulay interfeys</li>
+                        <li><ion-icon name="checkmark-circle" class="text-emerald-300 mr-2"></ion-icon> Onlayn natijalar va tezkor xabarlar</li>
+                    </ul>
+                    <div class="flex flex-col sm:flex-row gap-4">
+                        <a href="{% url 'login' %}" class="btn-primary inline-flex items-center justify-center">
+                            <i class="fas fa-sign-in-alt mr-2"></i> Tizimga kirish
+                        </a>
+                        <a href="#features" class="px-6 py-3 bg-white/10 hover:bg-white/20 text-white font-medium rounded-lg transition-all inline-flex items-center justify-center border border-white/20">
+                            <i class="fas fa-info-circle mr-2"></i> Batafsil ma'lumot
+                        </a>
+                    </div>
+                </div>
+                <div class="lg:w-1/2 flex justify-center relative">
+                    <img src="https://nsuni.uz/api/files/settings/db112544-a8cb-41a5-b9f2-139072961f8e.jpg" alt="NDPI HEMIS Tizimi" class="w-full max-w-md float-animation z-10">
+                    <ion-icon name="cloud-outline" class="absolute left-0 top-0 text-white/30 text-6xl animate-pulse"></ion-icon>
+                    <ion-icon name="sparkles-outline" class="absolute right-0 bottom-0 text-yellow-200 text-5xl animate-spin-slow"></ion-icon>
+                </div>
+            </div>
+        </div>
+    </section>
+    <section class="py-12 bg-slate-50">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+                <div class="stats-card">
+                    <span class="stats-icon bg-indigo-100 text-indigo-500"><ion-icon name="people-outline"></ion-icon></span>
+                    <div class="stats-value">5,000+</div>
+                    <div class="stats-label">Talabalar</div>
+                </div>
+                <div class="stats-card">
+                    <span class="stats-icon bg-indigo-100 text-indigo-500"><ion-icon name="school-outline"></ion-icon></span>
+                    <div class="stats-value">300+</div>
+                    <div class="stats-label">O'qituvchilar</div>
+                </div>
+                <div class="stats-card">
+                    <span class="stats-icon bg-indigo-100 text-indigo-500"><ion-icon name="book-outline"></ion-icon></span>
+                    <div class="stats-value">50+</div>
+                    <div class="stats-label">Yo'nalishlar</div>
+                </div>
+                <div class="stats-card">
+                    <span class="stats-icon bg-indigo-100 text-indigo-500"><ion-icon name="happy-outline"></ion-icon></span>
+                    <div class="stats-value">95%</div>
+                    <div class="stats-label">Mamnun talabalar</div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <section class="py-16 bg-white border-t">
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 class="text-3xl font-bold text-center mb-10">Imkoniyatlar</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div class="feature-card card-reveal card-reveal-delay-1">
+                <div class="p-6">
+                    <div class="w-14 h-14 bg-gradient-to-br from-blue-200 to-blue-100 rounded-lg flex items-center justify-center text-blue-600 mb-4">
+                        <ion-icon name="document-text-outline" class="text-2xl"></ion-icon>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">So‘rovnoma Yaratish</h3>
+                    <p class="text-slate-600">O‘qituvchilar o‘zlari mustaqil tarzda so‘rovnomalar yaratish imkoniyatiga ega.</p>
+                </div>
+            </div>
+            <div class="feature-card card-reveal card-reveal-delay-2">
+                <div class="p-6">
+                    <div class="w-14 h-14 bg-gradient-to-br from-teal-200 to-teal-100 rounded-lg flex items-center justify-center text-teal-600 mb-4">
+                        <ion-icon name="analytics-outline" class="text-2xl"></ion-icon>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">Statistik Tahlil</h3>
+                    <p class="text-slate-600">Yig‘ilgan natijalar asosida avtomatik tahlillar va grafik hisobotlar.</p>
+                </div>
+            </div>
+            <div class="feature-card card-reveal card-reveal-delay-3">
+                <div class="p-6">
+                    <div class="w-14 h-14 bg-gradient-to-br from-purple-200 to-purple-100 rounded-lg flex items-center justify-center text-purple-600 mb-4">
+                        <ion-icon name="shield-checkmark-outline" class="text-2xl"></ion-icon>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">Xavfsizlik va Maxfiylik</h3>
+                    <p class="text-slate-600">Javoblar anonim tarzda to‘planadi va xavfsizlik yuqori darajada ta’minlanadi.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+    <section id="features" class="py-16">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-3xl font-bold text-center mb-12">HEMIS Tizimi Imkoniyatlari</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div class="feature-card">
+                    <div class="p-6">
+                        <div class="w-14 h-14 bg-gradient-to-br from-indigo-200 to-indigo-100 rounded-lg flex items-center justify-center text-indigo-600 mb-4">
+                            <ion-icon name="person-circle-outline" class="text-2xl"></ion-icon>
+                        </div>
+                        <h3 class="text-xl font-semibold mb-2">Talaba Profili</h3>
+                        <p class="text-slate-600">Shaxsiy profilingiz, akademik ma'lumotlaringiz va barcha kerakli resurslar bir joyda</p>
+                    </div>
+                </div>
+                <div class="feature-card">
+                    <div class="p-6">
+                        <div class="w-14 h-14 bg-gradient-to-br from-sky-200 to-sky-100 rounded-lg flex items-center justify-center text-sky-600 mb-4">
+                            <ion-icon name="calendar-outline" class="text-2xl"></ion-icon>
+                        </div>
+                        <h3 class="text-xl font-semibold mb-2">Akademik Jadval</h3>
+                        <p class="text-slate-600">Dars jadvalingiz, imtihonlar va barcha akademik tadbirlar</p>
+                    </div>
+                </div>
+                <div class="feature-card">
+                    <div class="p-6">
+                        <div class="w-14 h-14 bg-gradient-to-br from-amber-200 to-yellow-100 rounded-lg flex items-center justify-center text-amber-600 mb-4">
+                            <ion-icon name="bar-chart-outline" class="text-2xl"></ion-icon>
+                        </div>
+                        <h3 class="text-xl font-semibold mb-2">Baholar Tahlili</h3>
+                        <p class="text-slate-600">Fanlar bo'yicha baxolaringiz va ularning dinamikasini kuzatish</p>
+                    </div>
+                </div>
+                <div class="feature-card">
+                    <div class="p-6">
+                        <div class="w-14 h-14 bg-gradient-to-br from-emerald-200 to-emerald-100 rounded-lg flex items-center justify-center text-emerald-600 mb-4">
+                            <ion-icon name="card-outline" class="text-2xl"></ion-icon>
+                        </div>
+                        <h3 class="text-xl font-semibold mb-2">Moliyaviy Hisobot</h3>
+                        <p class="text-slate-600">To'lovlar va qarzdorliklaringiz to'g'risida to'liq ma'lumot</p>
+                    </div>
+                </div>
+                <div class="feature-card">
+                    <div class="p-6">
+                        <div class="w-14 h-14 bg-gradient-to-br from-pink-200 to-pink-100 rounded-lg flex items-center justify-center text-pink-600 mb-4">
+                            <ion-icon name="sparkles-outline" class="text-2xl"></ion-icon>
+                        </div>
+                        <h3 class="text-xl font-semibold mb-2">Tadbirlar</h3>
+                        <p class="text-slate-600">Institutdagi barcha tadbirlar va ularga yozilish imkoniyati</p>
+                    </div>
+                </div>
+                <div class="feature-card">
+                    <div class="p-6">
+                        <div class="w-14 h-14 bg-gradient-to-br from-fuchsia-200 to-fuchsia-100 rounded-lg flex items-center justify-center text-fuchsia-600 mb-4">
+                            <ion-icon name="chatbubbles-outline" class="text-2xl"></ion-icon>
+                        </div>
+                        <h3 class="text-xl font-semibold mb-2">Xabarlashuv</h3>
+                        <p class="text-slate-600">O'qituvchilar va administratsiya bilan bevosita aloqa</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    
+    <section class="py-10 bg-white border-t border-slate-100">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-xl font-bold text-center mb-6">Hamkorlar va Foydali havolalar</h2>
+            <div class="flex flex-wrap justify-center items-center gap-8 mb-6">
+                <a href="https://edu.uz" target="_blank"><img src="https://api-portal.gov.uz/uploads/7/2025/06/20/62a99df6-a2f5-6531-77dd-f8d1e6adc293_authority_7.png" alt="Edu.uz" class="partners-logo"></a>
+               
+                <a href="https://uzedu.uz" target="_blank"><img src="https://uzedu.uz/img/logoSecondaryDark.svg" alt="UzEdu" class="partners-logo"></a>
+                <a href="https://my.gov.uz" target="_blank"><img src="https://my.gov.uz/img/logo.svg" alt="my.gov.uz" class="partners-logo"></a>
+                <a href="https://nyzgroup.uz" target="_blank"><img src="https://instagram.fbhk1-3.fna.fbcdn.net/v/t51.2885-19/374686593_1041794377260169_6114997283851085654_n.jpg?stp=dst-jpg_s150x150_tt6&_nc_ht=instagram.fbhk1-3.fna.fbcdn.net&_nc_cat=101&_nc_oc=Q6cZ2QF3s7wLomwl5Qq8tUdaZLMmFxo8qyE1NzzrL_EfTBRun0YXURr6agJ6KxWHY__nkNo&_nc_ohc=PpmV8VT0TjYQ7kNvwGcNmr9&_nc_gid=5KFEwzrDmLCB_xRPulFbrw&edm=AOQ1c0wBAAAA&ccb=7-5&oh=00_AfNEY81Wwf7zcKLjiODA9SX6LDW4x_PsTfAxLt9Jrl_Xjw&oe=685B2B95&_nc_sid=8b3546" alt="NYZGRUP" class="partners-logo"></a>
+                
+            </div>
+           
+        </div>
+    </section>
+    <section class="py-16 bg-indigo-600 text-white">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 class="text-3xl font-bold mb-4">HEMIS Tizimiga Kirish</h2>
+            <p class="text-xl mb-8 max-w-3xl mx-auto">Talabalar, o'qituvchilar va administratsiya uchun barcha kerakli resurslar bir joyda</p>
+            <div class="flex flex-col sm:flex-row justify-center gap-4">
+                <a href="{% url 'login' %}" class="btn-primary inline-flex items-center justify-center">
+                    <i class="fas fa-sign-in-alt mr-2"></i> Tizimga kirish
+                </a>
+                <a href="#" class="px-6 py-3 bg-white/10 hover:bg-white/20 text-white font-medium rounded-lg transition-all inline-flex items-center justify-center border border-white/20">
+                    <i class="fas fa-question-circle mr-2"></i> Yordam olish
+                </a>
+            </div>
+        </div>
+    </section>
+
+</div>
+{% endblock %}
