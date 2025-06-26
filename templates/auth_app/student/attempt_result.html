@@ -1,0 +1,61 @@
+<!-- templates/auth_app/student/attempt_result.html -->
+{% extends 'auth_app/base.html' %}
+{% block title %}Natija: {{ attempt.test.title }}{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto bg-white rounded-2xl shadow-card border border-gray-100 p-8 text-center">
+    <h2 class="text-2xl font-bold mb-2">Test Natijasi</h2>
+    <h3 class="text-lg font-semibold mb-2">{{ attempt.test.title }}</h3>
+    <p class="text-base mb-2">Talaba: <span class="font-semibold">{{ attempt.student }}</span></p>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 my-6">
+        <div>
+            <h4 class="font-semibold mb-1">To'plangan ball</h4>
+            <p class="text-2xl font-bold">{{ attempt.score }}</p>
+        </div>
+        <div>
+            <h4 class="font-semibold mb-1">Natija (foizda)</h4>
+            <p class="text-2xl font-bold">{{ attempt.percentage }}%</p>
+        </div>
+        <div>
+            <h4 class="font-semibold mb-1">Holati</h4>
+            {% if attempt.passed %}
+                <p class="text-2xl font-bold text-green-600">O'tdi <ion-icon name="checkmark-circle"></ion-icon></p>
+            {% else %}
+                <p class="text-2xl font-bold text-red-600">Yiqildi <ion-icon name="close-circle"></ion-icon></p>
+            {% endif %}
+        </div>
+    </div>
+    <a href="{% url 'test_list' %}" class="btn-primary mt-4">Boshqa testlar</a>
+</div>
+
+<h3 class="text-xl font-semibold mt-10 mb-4">Javoblar tahlili</h3>
+<div class="space-y-6">
+{% for sa in student_answers %}
+<div class="survey-card p-4 border-l-4 {% if sa.is_correct %}border-green-400{% else %}border-red-400{% endif %}">
+    <div class="font-semibold mb-2">Savol {{ forloop.counter }}: {{ sa.question.text|linebreaks }}</div>
+    <div class="mb-2">
+        <span class="font-medium">Sizning javobingiz:</span>
+        <ul class="list-disc ml-6">
+            {% for selected in sa.selected_answers.all %}
+            <li class="{% if selected.is_correct %}text-green-700{% else %}text-red-700{% endif %}">{{ selected.text }}</li>
+            {% empty %}
+            <li class="text-yellow-700">Javob berilmagan</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% if not sa.is_correct %}
+    <div>
+        <span class="font-medium">To'g'ri javob:</span>
+        <ul class="list-disc ml-6">
+            {% for correct_answer in sa.question.answers.all %}
+                {% if correct_answer.is_correct %}
+                <li class="text-blue-700">{{ correct_answer.text }}</li>
+                {% endif %}
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+</div>
+{% endfor %}
+</div>
+{% endblock %}

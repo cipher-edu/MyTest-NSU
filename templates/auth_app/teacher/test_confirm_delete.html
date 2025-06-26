@@ -1,0 +1,16 @@
+<!-- templates/auth_app/teacher/test_confirm_delete.html -->
+{% extends 'auth_app/base.html' %}
+{% block title %}Testni o'chirishni tasdiqlash{% endblock %}
+
+{% block content %}
+<div class="max-w-lg mx-auto bg-white rounded-2xl shadow-card border border-red-200 p-8 text-center">
+    <h2 class="text-2xl font-bold text-red-600 mb-2">Tasdiqlash</h2>
+    <p class="text-lg mb-2">Haqiqatan ham <span class="font-semibold">"{{ object.title }}"</span> nomli testni o'chirmoqchimisiz?</p>
+    <p class="text-slate-500 mb-6">Bu amalni orqaga qaytarib bo'lmaydi!</p>
+    <form method="post" class="flex flex-col sm:flex-row gap-3 justify-center">
+        {% csrf_token %}
+        <button type="submit" class="btn-danger flex-1">Ha, o'chirish</button>
+        <a href="{% url 'teacher_test_list' %}" class="btn-secondary flex-1">Yo'q, bekor qilish</a>
+    </form>
+</div>
+{% endblock %}

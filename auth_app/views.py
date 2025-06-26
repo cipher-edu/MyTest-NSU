@@ -1,27 +1,23 @@
 # auth_app/views.py
 import logging
 from functools import wraps
-from .decorators import custom_login_required_with_token_refresh
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.conf import settings
 from django.contrib import messages
 from django.db import transaction
-from django.urls import reverse # reverse ni import qilish
+from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.core.cache import cache
-from django.http import Http404, HttpResponseForbidden
+from django.http import Http404, HttpResponseForbidden, JsonResponse
 from django.utils.decorators import method_decorator
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 
-from .forms import LoginForm
-from .models import *
+from .decorators import custom_login_required_with_token_refresh
+from .forms import LoginForm, TestForm, QuestionForm, AnswerFormSet
+from .models import * # Barcha modellarni import qilish
 from .services.hemis_api_service import HemisAPIClient, APIClientException
-from .utils import map_api_data_to_student_model_defaults, update_student_instance_with_defaults # <--- YANGI IMPORTLAR
-
-
-
-from django.shortcuts import get_object_or_404
-from django.contrib.auth.decorators import login_required # Yoki bizning custom_login_required
-from .forms import *
+from .utils import map_api_data_to_student_model_defaults, update_student_instance_with_defaults
 
 logger = logging.getLogger(__name__)
 REQUESTS_VERIFY_SSL = getattr(settings, 'REQUESTS_VERIFY_SSL', True)
@@ -334,3 +330,237 @@ def dashboard_view(request):
         'username_display': str(current_student),
     }
     return render(request, 'auth_app/dashboard.html', context)
+
+
+
+def is_teacher_or_staff(user):
+    # Bu yerda o'qituvchilar guruhini ham tekshirish mumkin
+    # return user.is_authenticated and (user.is_staff or user.groups.filter(name='Teachers').exists())
+    return user.is_authenticated and user.is_staff
+
+teacher_required = user_passes_test(is_teacher_or_staff, login_url='/admin/login/')
+
+# === TALABALAR UCHUN VIEW'LAR ===
+
+@custom_login_required_with_token_refresh
+def test_list_view(request):
+    """Talabalar uchun aktiv testlar ro'yxati."""
+    tests = Test.objects.filter(is_active=True).select_related('creator')
+    context = {
+        'tests': tests,
+    }
+    return render(request, 'auth_app/student/test_list.html', context)
+
+@custom_login_required_with_token_refresh
+def test_detail_view(request, pk):
+    """Testni boshlashdan oldin u haqida ma'lumot."""
+    test = get_object_or_404(Test, pk=pk, is_active=True)
+    context = {
+        'test': test,
+    }
+    return render(request, 'auth_app/student/test_detail.html', context)
+
+@custom_login_required_with_token_refresh
+@transaction.atomic
+def start_attempt_view(request, test_id):
+    """Test uchun yangi urinish (TestAttempt) yaratadi."""
+    if request.method == 'POST':
+        test = get_object_or_404(Test, pk=test_id, is_active=True)
+        student = request.current_student
+
+        # Agar bu test uchun tugallanmagan urinish bo'lsa, o'shanga yo'naltirish
+        active_attempt = TestAttempt.objects.filter(
+            student=student,
+            test=test,
+            status=TestAttempt.AttemptStatus.IN_PROGRESS
+        ).first()
+
+        if active_attempt:
+            return redirect('take_test', attempt_id=active_attempt.id)
+
+        # Yangi urinish yaratish
+        attempt = TestAttempt.objects.create(student=student, test=test)
+        return redirect('take_test', attempt_id=attempt.id)
+    return redirect('test_detail', pk=test_id)
+
+
+@custom_login_required_with_token_refresh
+def take_test_view(request, attempt_id):
+    """Asosiy test topshirish sahifasi."""
+    attempt = get_object_or_404(
+        TestAttempt.objects.select_related('test'),
+        pk=attempt_id,
+        student=request.current_student
+    )
+
+    if attempt.status == TestAttempt.AttemptStatus.COMPLETED:
+        messages.info(request, "Siz bu testni allaqachon tugatgansiz.")
+        return redirect('attempt_result', attempt_id=attempt.id)
+
+    time_limit_seconds = attempt.test.time_limit_minutes * 60
+    time_elapsed = (timezone.now() - attempt.start_time).total_seconds()
+    time_remaining = max(0, time_limit_seconds - time_elapsed) if time_limit_seconds > 0 else -1 # -1 cheksiz degani
+
+    if time_remaining == 0 and time_limit_seconds > 0:
+        return redirect('finish_attempt', attempt_id=attempt.id)
+        
+    questions = attempt.test.questions.all().prefetch_related('answers')
+
+    context = {
+        'attempt': attempt,
+        'test': attempt.test,
+        'questions': questions,
+        'time_remaining': time_remaining, # sekundlarda
+    }
+    return render(request, 'auth_app/student/take_test.html', context)
+
+
+@custom_login_required_with_token_refresh
+@transaction.atomic
+def finish_attempt_view(request, attempt_id):
+    """Testni tugatish va natijalarni hisoblash."""
+    if request.method == 'POST':
+        attempt = get_object_or_404(
+            TestAttempt,
+            pk=attempt_id,
+            student=request.current_student,
+            status=TestAttempt.AttemptStatus.IN_PROGRESS
+        )
+
+        # Javoblarni saqlash
+        for key, value in request.POST.items():
+            if key.startswith('question_'):
+                question_id = key.split('_')[1]
+                question = get_object_or_404(Question, pk=question_id)
+                student_answer, _ = StudentAnswer.objects.get_or_create(attempt=attempt, question=question)
+
+                # Oldingi javoblarni tozalash
+                student_answer.selected_answers.clear()
+                
+                # Yangi javoblarni qo'shish
+                if question.question_type == 'multiple_choice':
+                    answer_ids = request.POST.getlist(key)
+                    for answer_id in answer_ids:
+                        answer = get_object_or_404(Answer, pk=answer_id)
+                        student_answer.selected_answers.add(answer)
+                else: # single_choice
+                    answer = get_object_or_404(Answer, pk=value)
+                    student_answer.selected_answers.add(answer)
+        
+        # Urinishni yakunlash (signal ishga tushadi va hisoblaydi)
+        attempt.status = TestAttempt.AttemptStatus.COMPLETED
+        attempt.end_time = timezone.now()
+        attempt.save() # Bu yerda signal ishga tushadi
+
+        messages.success(request, f"'{attempt.test.title}' testi muvaffaqiyatli yakunlandi!")
+        return redirect('attempt_result', attempt_id=attempt.id)
+    
+    return redirect('take_test', attempt_id=attempt_id)
+
+
+@custom_login_required_with_token_refresh
+def attempt_result_view(request, attempt_id):
+    """Talaba uchun test natijalarini ko'rsatish sahifasi."""
+    attempt = get_object_or_404(
+        TestAttempt.objects.select_related('test', 'student'),
+        pk=attempt_id,
+        student=request.current_student
+    )
+    # Javoblarni ham yuklab olish
+    student_answers = attempt.student_answers.all().select_related('question').prefetch_related('selected_answers', 'question__answers')
+
+    context = {
+        'attempt': attempt,
+        'student_answers': student_answers
+    }
+    return render(request, 'auth_app/student/attempt_result.html', context)
+
+# === O'QITUVCHILAR UCHUN VIEW'LAR ===
+
+@method_decorator(teacher_required, name='dispatch')
+class TestListView(ListView):
+    """O'qituvchi uchun u yaratgan testlar ro'yxati."""
+    model = Test
+    template_name = 'auth_app/teacher/test_management_list.html'
+    context_object_name = 'tests'
+
+    def get_queryset(self):
+        # Faqat o'zi yaratgan testlarni ko'rsatish
+        return Test.objects.filter(creator=self.request.user).order_by('-created_at')
+
+@method_decorator(teacher_required, name='dispatch')
+class TestCreateView(CreateView):
+    model = Test
+    form_class = TestForm
+    template_name = 'auth_app/teacher/test_form.html'
+    success_url = reverse_lazy('teacher_test_list')
+
+    def form_valid(self, form):
+        form.instance.creator = self.request.user
+        messages.success(self.request, "Test muvaffaqiyatli yaratildi.")
+        return super().form_valid(form)
+
+@method_decorator(teacher_required, name='dispatch')
+class TestUpdateView(UpdateView):
+    model = Test
+    form_class = TestForm
+    template_name = 'auth_app/teacher/test_form.html'
+    success_url = reverse_lazy('teacher_test_list')
+
+    def get_queryset(self):
+        return Test.objects.filter(creator=self.request.user)
+
+    def form_valid(self, form):
+        messages.success(self.request, "Test muvaffaqiyatli yangilandi.")
+        return super().form_valid(form)
+        
+@method_decorator(teacher_required, name='dispatch')
+class TestDeleteView(DeleteView):
+    model = Test
+    template_name = 'auth_app/teacher/test_confirm_delete.html'
+    success_url = reverse_lazy('teacher_test_list')
+    
+    def get_queryset(self):
+        return Test.objects.filter(creator=self.request.user)
+    
+    def form_valid(self, form):
+        messages.success(self.request, "Test muvaffaqiyatli o'chirildi.")
+        return super().form_valid(form)
+
+@teacher_required
+def manage_questions_view(request, test_id):
+    """Test uchun savollarni qo'shish, tahrirlash va o'chirish."""
+    test = get_object_or_404(Test, pk=test_id, creator=request.user)
+    
+    if request.method == 'POST':
+        question_form = QuestionForm(request.POST, request.FILES)
+        if question_form.is_valid():
+            question = question_form.save(commit=False)
+            question.test = test
+            question.save()
+            
+            # Formset'ni question bilan bog'lab qayta yaratish
+            formset = AnswerFormSet(request.POST, instance=question)
+            if formset.is_valid():
+                formset.save()
+                messages.success(request, f"'{question.text[:30]}...' savoli muvaffaqiyatli qo'shildi.")
+                return redirect('manage_questions', test_id=test.id)
+            else:
+                 # Agar formset yaroqsiz bo'lsa, xatolik bilan qaytarish
+                messages.error(request, "Javob variantlarini to'ldirishda xatolik.")
+        else:
+            formset = AnswerFormSet() # Bo'sh formset
+            messages.error(request, "Savolni to'ldirishda xatolik.")
+
+    else:
+        question_form = QuestionForm()
+        formset = AnswerFormSet()
+        
+    questions = test.questions.all().prefetch_related('answers')
+    context = {
+        'test': test,
+        'questions': questions,
+        'question_form': question_form,
+        'formset': formset
+    }
+    return render(request, 'auth_app/teacher/manage_questions.html', context)

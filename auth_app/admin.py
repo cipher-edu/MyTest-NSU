@@ -6,9 +6,7 @@ from django.conf import settings
 from django.db.models import Count
 import logging
 import os
-from .models import (
-    Student, 
-)
+from .models import *
 logger = logging.getLogger(__name__)
 @admin.register(Student)
 class StudentAdmin(admin.ModelAdmin):
@@ -210,5 +208,73 @@ class StudentAdmin(admin.ModelAdmin):
              self.message_user(request, "Talaba ma'lumotlarini yangilash funksiyasi to'liq sozlanmagan yoki xatolik yuz berdi.", messages.WARNING)
         else:
             self.message_user(request, "Yangilash uchun talabalar tanlanmadi.", messages.INFO)
+class AnswerInline(admin.TabularInline):
+    """Savol yaratish sahifasida javob variantlarini birga qo'shish uchun."""
+    model = Answer
+    extra = 4 # Standart 4 ta javob varianti uchun joy
+    fields = ('text', 'is_correct')
+
+
+@admin.register(Question)
+class QuestionAdmin(admin.ModelAdmin):
+    """Savollarni alohida boshqarish uchun panel."""
+    list_display = ('text', 'test', 'question_type', 'points', 'order')
+    list_filter = ('test__title', 'question_type')
+    search_fields = ('text', 'test__title')
+    inlines = [AnswerInline] # Javoblarni shu yerda tahrirlash imkoniyati
+    ordering = ('test', 'order')
+
+
+class QuestionInline(admin.StackedInline):
+    """Test yaratish sahifasida savollarni birga qo'shish uchun."""
+    model = Question
+    extra = 1
+    fields = ('text', 'question_type', 'image', 'points', 'order')
+    show_change_link = True # Savolni alohida sahifada ochish uchun havola
+
+
+@admin.register(Test)
+class TestAdmin(admin.ModelAdmin):
+    """Testlarni boshqarish uchun asosiy panel."""
+    list_display = ('title', 'creator', 'time_limit_minutes', 'pass_percentage', 'is_active', 'question_count')
+    list_filter = ('is_active', 'creator')
+    search_fields = ('title', 'description', 'creator__username')
+    inlines = [QuestionInline] # Savollarni test ichida boshqarish
+    readonly_fields = ('created_at', 'updated_at')
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).prefetch_related('questions')
+
+    @admin.display(description="Savollar soni")
+    def question_count(self, obj):
+        return obj.questions.count()
+
+
+class StudentAnswerInline(admin.TabularInline):
+    """Test urinishini ko'rganda talabaning javoblarini ko'rsatish uchun."""
+    model = StudentAnswer
+    extra = 0
+    readonly_fields = ('question', 'get_selected_answers_display', 'open_answer_text', 'is_correct', 'points_earned')
+    can_delete = False
+
+    @admin.display(description="Tanlangan javob(lar)")
+    def get_selected_answers_display(self, obj):
+        return ", ".join([a.text for a in obj.selected_answers.all()])
+
+
+@admin.register(TestAttempt)
+class TestAttemptAdmin(admin.ModelAdmin):
+    """Talabalarning test urinishlarini ko'rish uchun panel."""
+    list_display = ('student', 'test', 'status', 'score', 'percentage', 'passed', 'start_time', 'end_time')
+    list_filter = ('test__title', 'status', 'passed', 'student__faculty_name_api')
+    search_fields = ('student__username', 'student__full_name_api', 'test__title')
+    readonly_fields = [f.name for f in TestAttempt._meta.get_fields()]
+    inlines = [StudentAnswerInline]
+
+    def has_add_permission(self, request):
+        return False # Admin panelidan urinish qo'shib bo'lmaydi
+
+    def has_change_permission(self, request, obj=None):
+        return False # Faqat ko'rish uchun
 
 

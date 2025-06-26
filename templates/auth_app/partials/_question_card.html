@@ -1,0 +1,44 @@
+{% comment %}
+    Bu fayl bitta savol va uning javoblarini "karta" ko'rinishida chiqarish uchun mo'ljallangan.
+    U `manage_questions.html` andozasida `include` orqali ishlatiladi.
+    Uнга 'question' nomli o'zgaruvchi (savol obyekti) uzatilishi kerak.
+{% endcomment %}
+
+<div class="survey-card p-6 mb-4">
+    <div class="flex justify-between items-center mb-2">
+        <div class="flex items-center gap-2">
+            <span class="inline-block px-2 py-1 rounded bg-slate-200 text-xs text-slate-700">{{ question.get_question_type_display }}</span>
+            <span class="inline-block px-2 py-1 rounded bg-primary-100 text-xs text-primary-700">{{ question.points }} ball</span>
+        </div>
+        <div class="flex gap-2">
+            <!-- Tahrirlash va o'chirish uchun havolalar (kelajakda qo'shiladi) -->
+            <a href="#" class="btn-secondary px-2 py-1 text-xs" title="Tahrirlash"><ion-icon name="pencil-outline"></ion-icon></a>
+            <a href="#" class="btn-danger px-2 py-1 text-xs" title="O'chirish"><ion-icon name="trash-outline"></ion-icon></a>
+        </div>
+    </div>
+    <div class="flex flex-col md:flex-row gap-4">
+        <div class="flex-1">
+            <p class="text-base font-medium mb-2">{{ question.text|linebreaks }}</p>
+            <h6 class="font-semibold text-slate-600 mt-3 mb-1">Javob variantlari:</h6>
+            <ul class="space-y-1">
+                {% for answer in question.answers.all %}
+                    <li class="flex items-center gap-2 p-2 rounded border border-slate-100 {% if answer.is_correct %}bg-green-50 border-green-200{% else %}bg-slate-50{% endif %}">
+                        {% if answer.is_correct %}
+                            <ion-icon name="checkmark-circle" class="text-green-500"></ion-icon>
+                        {% else %}
+                            <ion-icon name="ellipse-outline" class="text-slate-400"></ion-icon>
+                        {% endif %}
+                        <span>{{ answer.text }}</span>
+                    </li>
+                {% empty %}
+                    <li class="text-yellow-700 bg-yellow-50 p-2 rounded">Bu savolga hali javob variantlari qo'shilmagan.</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% if question.image %}
+        <div class="flex items-center justify-center md:w-1/3">
+            <img src="{{ question.image.url }}" alt="Savol surati" class="rounded-xl border max-h-48 object-contain">
+        </div>
+        {% endif %}
+    </div>
+</div>

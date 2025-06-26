@@ -1,0 +1,49 @@
+<!-- templates/auth_app/teacher/test_management_list.html -->
+{% extends 'auth_app/base.html' %}
+{% block title %}Testlarni Boshqarish{% endblock %}
+
+{% block content %}
+<div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+    <h1 class="text-2xl font-bold">Testlarni Boshqarish</h1>
+    <a href="{% url 'test_create' %}" class="btn-primary flex items-center gap-2">
+        <ion-icon name="add-circle-outline" class="text-xl"></ion-icon> Yangi Test Yaratish
+    </a>
+</div>
+
+<div class="bg-white rounded-2xl shadow-card border border-gray-100 p-4 overflow-x-auto">
+    <table class="min-w-full divide-y divide-slate-200">
+        <thead>
+            <tr class="text-left text-xs font-semibold text-slate-500 uppercase">
+                <th class="py-2 px-3">Sarlavha</th>
+                <th class="py-2 px-3">Holati</th>
+                <th class="py-2 px-3">Savollar Soni</th>
+                <th class="py-2 px-3">Amallar</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+            {% for test in tests %}
+            <tr>
+                <td class="py-2 px-3">{{ test.title }}</td>
+                <td class="py-2 px-3">
+                    {% if test.is_active %}
+                        <span class="inline-block px-2 py-1 rounded bg-green-100 text-green-800 text-xs">Aktiv</span>
+                    {% else %}
+                        <span class="inline-block px-2 py-1 rounded bg-slate-200 text-slate-700 text-xs">Aktiv emas</span>
+                    {% endif %}
+                </td>
+                <td class="py-2 px-3">{{ test.questions.count }}</td>
+                <td class="py-2 px-3 flex gap-2">
+                    <a href="{% url 'manage_questions' test.id %}" class="btn-secondary px-2 py-1 text-xs" title="Savollar"><ion-icon name="list-outline"></ion-icon></a>
+                    <a href="{% url 'test_update' test.id %}" class="btn-warning px-2 py-1 text-xs" title="Tahrirlash"><ion-icon name="pencil-outline"></ion-icon></a>
+                    <a href="{% url 'test_delete' test.id %}" class="btn-danger px-2 py-1 text-xs" title="O'chirish"><ion-icon name="trash-outline"></ion-icon></a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4" class="text-center py-4 text-slate-400">Siz hali test yaratmagansiz.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
