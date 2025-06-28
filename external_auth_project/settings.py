@@ -1,5 +1,6 @@
 from pathlib import Path
-from venv import logger
+import logging
+logger = logging.getLogger(__name__)
 import environ
 import os
 
@@ -34,7 +35,6 @@ MIDDLEWARE = [
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -112,35 +112,42 @@ WSGI_APPLICATION = 'external_auth_project.wsgi.application'
 
 LOGIN_URL = 'login'  
 LOGIN_REDIRECT_URL = 'home'  
+
+# DATABASES = {
+#     'default': {
+#         'ENGINE': env('DB_ENGINE', default='django.db.backends.postgresql'),
+#         'NAME': env('DB_NAME', default='survey_prod_db'),
+#         'USER': env('DB_USER', default='survey_user'),
+#         'PASSWORD': env('DB_PASSWORD', default='super_secret_password'),
+#         'HOST': env('DB_HOST', default='db'),
+#         'PORT': env('DB_PORT', default='5432'),
+#     }
+# }
+
+
+# if DATABASES['default']['ENGINE'] == 'django.db.backends.sqlite3':
+#     DATABASES['default'].pop('USER', None)
+#     DATABASES['default'].pop('PASSWORD', None)
+#     DATABASES['default'].pop('HOST', None)
+#     DATABASES['default'].pop('PORT', None)
+# elif DATABASES['default']['ENGINE'] == 'django.db.backends.mysql':
+#     DATABASES['default'].setdefault('OPTIONS', {
+#         'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+#         'charset': 'utf8mb4', 
+#     })
+#     if DATABASES['default'].get('PORT'):
+#         try:
+#             DATABASES['default']['PORT'] = int(DATABASES['default']['PORT'])
+#         except ValueError:
+#             logger.warning(f"DB_PORT qiymati ({DATABASES['default']['PORT']}) raqam emas. MySQL uchun standart port ishlatiladi yoki xatolik yuz berishi mumkin.")
+#             DATABASES['default']['PORT'] = '3306' 
+
 DATABASES = {
     'default': {
-        'ENGINE': env('DB_ENGINE', default='django.db.backends.postgresql'),
-        'NAME': env('DB_NAME', default='survey_prod_db'),
-        'USER': env('DB_USER', default='survey_user'),
-        'PASSWORD': env('DB_PASSWORD', default='super_secret_password'),
-        'HOST': env('DB_HOST', default='db'),
-        'PORT': env('DB_PORT', default='5432'),
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
-
-
-if DATABASES['default']['ENGINE'] == 'django.db.backends.sqlite3':
-    DATABASES['default'].pop('USER', None)
-    DATABASES['default'].pop('PASSWORD', None)
-    DATABASES['default'].pop('HOST', None)
-    DATABASES['default'].pop('PORT', None)
-elif DATABASES['default']['ENGINE'] == 'django.db.backends.mysql':
-    DATABASES['default'].setdefault('OPTIONS', {
-        'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-        'charset': 'utf8mb4', 
-    })
-    if DATABASES['default'].get('PORT'):
-        try:
-            DATABASES['default']['PORT'] = int(DATABASES['default']['PORT'])
-        except ValueError:
-            logger.warning(f"DB_PORT qiymati ({DATABASES['default']['PORT']}) raqam emas. MySQL uchun standart port ishlatiladi yoki xatolik yuz berishi mumkin.")
-            DATABASES['default']['PORT'] = '3306' 
-
 
 AUTH_PASSWORD_VALIDATORS = [
     {

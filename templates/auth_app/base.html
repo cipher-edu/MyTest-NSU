@@ -329,17 +329,12 @@
                         <ion-icon name="person-outline" class="text-xl"></ion-icon>
                         <span class="ml-1.5">Profilim</span>
                     </a>
-                    <a href="{% url 'test_list' %}" class="nav-link-desktop {% if request.resolver_match.url_name == 'test_list' %}nav-link-active{% endif %}">
+                    <a href="" class="nav-link-desktop {% if request.resolver_match.url_name == 'test_list' %}nav-link-active{% endif %}">
                         <ion-icon name="list-outline" class="text-xl"></ion-icon>
                         <span class="ml-1.5">Testlar</span>
                     </a>
                     {% endif %}
-                    {% if request.user.is_authenticated and request.user.is_staff %}
-                    <a href="{% url 'teacher_test_list' %}" class="nav-link-desktop {% if request.resolver_match.url_name == 'teacher_test_list' %}nav-link-active{% endif %}">
-                        <ion-icon name="school-outline" class="text-xl"></ion-icon>
-                        <span class="ml-1.5">O'qituvchi paneli</span>
-                    </a>
-                    {% endif %}
+                    
                 </div>
                 
                 <!-- User Menu -->
