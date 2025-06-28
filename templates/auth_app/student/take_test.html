@@ -13,6 +13,11 @@
     {% endif %}
 </div>
 
+{% if attempt.status == 'completed' %}
+    <div class="bg-green-50 border-l-4 border-green-400 text-green-800 rounded-xl p-4 mb-6">
+        <strong>Diqqat!</strong> Siz ushbu testni allaqachon yakunlagansiz. <a href="{% url 'attempt_result' attempt.id %}" class="underline text-blue-600">Natijani ko'rish</a>.
+    </div>
+{% else %}
 <form id="test-form" action="{% url 'finish_attempt' attempt.id %}" method="post" class="space-y-6">
     {% csrf_token %}
     {% for question in questions %}
@@ -44,6 +49,7 @@
         <button type="submit" class="btn-primary btn-lg w-full sm:w-auto">Testni Yakunlash</button>
     </div>
 </form>
+{% endif %}
 {% endblock %}
 
 {% block scripts %}

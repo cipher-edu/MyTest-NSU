@@ -17,10 +17,17 @@
     <div class="bg-yellow-50 border-l-4 border-yellow-400 text-yellow-800 rounded-xl p-4 mb-6">
         <strong>Diqqat!</strong> Testni boshlaganingizdan so'ng, vaqtni to'xtatib bo'lmaydi.
     </div>
+    {% if user.is_authenticated and test.attempts.filter(student=request.current_student, status='completed').exists %}
+    <div class="bg-green-50 border-l-4 border-green-400 text-green-800 rounded-xl p-4 mb-6">
+        <strong>Diqqat!</strong> Siz ushbu testni allaqachon yakunlagansiz. <a href="{% url 'attempt_result' test.attempts.get(student=request.current_student, status='completed').id %}" class="underline text-blue-600">Natijani ko'rish</a>.
+    </div>
+    <a href="{% url 'test_list' %}" class="btn-secondary flex-1">Orqaga</a>
+    {% else %}
     <form action="{% url 'start_attempt' test.id %}" method="post" class="flex flex-col sm:flex-row gap-3 justify-center">
         {% csrf_token %}
         <button type="submit" class="btn-primary flex-1">Testni Boshlash</button>
         <a href="{% url 'test_list' %}" class="btn-secondary flex-1">Orqaga</a>
     </form>
+    {% endif %}
 </div>
 {% endblock %}
