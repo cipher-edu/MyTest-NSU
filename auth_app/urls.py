@@ -39,3 +39,6 @@ urlpatterns = [
     # API yo'nalishlarini qo'shish
     path('api/v1/', include((api_urlpatterns, 'auth_app'), namespace='api')),
 ]
+
+
+

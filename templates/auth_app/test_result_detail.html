@@ -1,74 +1,66 @@
-{% extends 'auth_app/base.html' %}
+{% extends 'base.html' %}
 
-{% block page_title %}Natija: {{ result.test.title }}{% endblock %}
+{% block title %}Natija: {{ result.test.title }}{% endblock %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto animate-fade-in">
-    <div class="mb-6">
-        <a href="{% url 'test-list' %}" class="inline-flex items-center text-sm font-medium text-slate-600 hover:text-primary-600 transition-colors">
-            <ion-icon name="arrow-back-outline" class="mr-2"></ion-icon>
-            Barcha testlarga qaytish
-        </a>
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <h2 class="card-title h4 mb-0">Test Natijasi: {{ result.test.title }}</h2>
     </div>
-
-    <!-- Natija xulosasi kartochkasi -->
-    <div class="bg-white rounded-2xl shadow-soft border border-slate-100 p-8 mb-8">
-        <div class="text-center">
-            <p class="text-sm font-medium text-primary-600">Sizning natijangiz</p>
-            <h1 class="text-4xl font-bold font-serif text-slate-900 mt-1">{{ result.test.title }}</h1>
-            <div class="my-6">
-                <span class="text-6xl font-bold text-slate-800">{{ result.score|floatformat:1 }}</span>
-                <span class="text-2xl text-slate-500">/ {{ result.test.max_score|floatformat:1 }} ball</span>
+    <div class="card-body">
+        <div class="row text-center mb-4">
+            <div class="col-md-4">
+                <h5>To'plangan ball</h5>
+                <p class="display-5 text-primary fw-bold">{{ result.score|floatformat:2 }}</p>
             </div>
-            {% with percentage=result.score|div:result.test.max_score|mul:100 %}
-            <div class="w-full bg-slate-200 rounded-full h-4">
-                <div class="gpa-progress-bar h-4 rounded-full" style="width: {{ percentage|floatformat:2 }}%;"></div>
+            <div class="col-md-4">
+                <h5>Maksimal ball</h5>
+                <p class="display-5 fw-bold">{{ result.test.max_score|floatformat:2 }}</p>
             </div>
-            <p class="mt-2 text-sm text-slate-500">Umumiy ko'rsatkich: {{ percentage|floatformat:2 }}%</p>
-            {% endwith %}
+            <div class="col-md-4">
+                <h5>Topshirilgan vaqt</h5>
+                <p class="fs-5 mt-3">{{ result.end_time|date:"d.m.Y H:i" }}</p>
+            </div>
         </div>
+        <hr>
+        <p><strong>Talaba:</strong> {{ result.student }}</p>
     </div>
+</div>
 
-    <!-- Javoblar tahlili -->
-    <div>
-        <h2 class="text-2xl font-bold text-slate-800 mb-5">Javoblar tahlili</h2>
-        <div class="space-y-4">
-            {% for sa in result.student_answers.all %}
-                <div class="bg-white rounded-xl border p-5
-                    {% if sa.chosen_answer.is_correct %} border-green-200 {% else %} border-red-200 {% endif %}">
-                    <div class="flex items-start">
-                        <div class="flex-shrink-0 mr-4">
-                            {% if sa.chosen_answer.is_correct %}
-                                <span class="flex items-center justify-center w-8 h-8 rounded-full bg-green-100">
-                                    <ion-icon name="checkmark-outline" class="text-xl text-green-600"></ion-icon>
-                                </span>
-                            {% else %}
-                                <span class="flex items-center justify-center w-8 h-8 rounded-full bg-red-100">
-                                    <ion-icon name="close-outline" class="text-xl text-red-600"></ion-icon>
-                                </span>
-                            {% endif %}
-                        </div>
-                        <div class="flex-grow">
-                            <p class="font-medium text-slate-800">{{ forloop.counter }}. {{ sa.question.text }}</p>
-                            <div class="mt-3 text-sm">
-                                <p><strong>Sizning javobingiz:</strong> 
-                                    <span class="{% if not sa.chosen_answer.is_correct %}text-red-600 line-through{% else %}text-green-700{% endif %}">
-                                        {{ sa.chosen_answer.text|default:"Javob berilmagan" }}
-                                    </span>
-                                </p>
-                                {% if not sa.chosen_answer.is_correct %}
-                                    {% for answer in sa.question.answers.all %}
-                                        {% if answer.is_correct %}
-                                            <p class="mt-1"><strong>To'g'ri javob:</strong> <span class="text-green-700">{{ answer.text }}</span></p>
-                                        {% endif %}
-                                    {% endfor %}
-                                {% endif %}
-                            </div>
-                        </div>
+<div class="card">
+    <div class="card-header">
+        <h3 class="h5 mb-0">Javoblar Tahlili</h3>
+    </div>
+    <div class="list-group list-group-flush">
+        {% for answer in detailed_answers %}
+            <div class="list-group-item">
+                <p class="mb-2"><strong>Savol:</strong> {{ answer.question_text|safe }}</p>
+                
+                {% if answer.is_correct %}
+                    <div class="alert alert-success p-2">
+                        <strong>Sizning javobingiz:</strong> {{ answer.chosen_answer.text }} (To'g'ri)
                     </div>
-                </div>
-            {% endfor %}
-        </div>
+                {% else %}
+                    <div class="alert alert-danger p-2">
+                        <strong>Sizning javobingiz:</strong> 
+                        {% if answer.chosen_answer %}
+                            {{ answer.chosen_answer.text }} (Noto'g'ri)
+                        {% else %}
+                            <span class="text-muted">Javob berilmagan</span>
+                        {% endif %}
+                    </div>
+                    {% if answer.correct_answer %}
+                    <div class="alert alert-info p-2">
+                        <strong>To'g'ri javob:</strong> {{ answer.correct_answer.text }}
+                    </div>
+                    {% endif %}
+                {% endif %}
+            </div>
+        {% endfor %}
     </div>
+</div>
+
+<div class="mt-4">
+    <a href="{% url 'test-list' %}" class="btn btn-secondary">Boshqa testlarga qaytish</a>
 </div>
 {% endblock %}

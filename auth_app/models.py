@@ -188,6 +188,19 @@ class Group(models.Model):
         verbose_name_plural = "Guruhlar (ma'lumotnoma)"
         ordering = ['name']
 
+class Level(models.Model):
+    """HEMIS API'dan olingan kurslar (bosqichlar) uchun ma'lumotnoma."""
+    code = models.CharField(max_length=10, primary_key=True, verbose_name="Kurs kodi (API)")
+    name = models.CharField(max_length=50, verbose_name="Kurs nomi")
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = "Kurs (ma'lumotnoma)"
+        verbose_name_plural = "Kurslar (ma'lumotnoma)"
+        ordering = ['code']
+
 class Test(models.Model):
     """Testlar va ularning sozlamalari uchun asosiy model."""
     class Status(models.TextChoices):
@@ -257,6 +270,11 @@ class Test(models.Model):
         verbose_name="Ruxsat etilgan guruhlar",
         help_text="Test faqat tanlangan guruh talabalari uchun ochiq bo'ladi."
     )
+    levels = models.ManyToManyField(
+        Level, blank=True,
+        verbose_name="Ruxsat etilgan kurslar",
+        help_text="Test faqat tanlangan kurs talabalari uchun ochiq bo'ladi."
+    )
     randomize_questions = models.BooleanField(
         default=True,
         verbose_name="Savollarni aralashtirish",
@@ -273,6 +291,7 @@ class Test(models.Model):
         verbose_name="Test manba fayli (.txt)",
         help_text="Savollar yuklangan original .txt fayli."
     )
+
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Yaratilgan sana")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Yangilangan sana")
 

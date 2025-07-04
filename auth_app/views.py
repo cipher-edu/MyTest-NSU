@@ -18,7 +18,7 @@ from .decorators import custom_login_required_with_token_refresh
 from .forms import *
 from .models import * # Barcha modellarni import qilish
 from .services.hemis_api_service import HemisAPIClient, APIClientException
-from .utils import map_api_data_to_student_model_defaults, update_student_instance_with_defaults
+from .utils import map_api_data_to_student_model_defaults, sync_reference_models_from_student, update_student_instance_with_defaults
 
 
 import logging
@@ -146,6 +146,9 @@ def custom_login_required_with_token_refresh(view_func):
 
 # --- Views ---
 def login_view(request):
+    """Foydalanuvchini HEMIS API orqali autentifikatsiya qiladi va ma'lumotlarini sinxronlaydi."""
+    
+    # Agar foydalanuvchi allaqachon tizimga kirgan bo'lsa
     if 'api_token' in request.session and 'student_db_id' in request.session:
         if _handle_api_token_refresh(request):
             try:
@@ -154,15 +157,13 @@ def login_view(request):
                 next_url = request.session.pop('login_next_url', None) or request.GET.get('next')
                 return redirect(next_url or 'dashboard')
             except Student.DoesNotExist:
-                logger.warning(f"Logged in user (ID: {request.session.get('student_db_id')}) not found in DB. Flushing session.")
+                logger.warning(f"Sessiyadagi foydalanuvchi (ID: {request.session.get('student_db_id')}) bazadan topilmadi. Sessiya tozalanmoqda.")
                 request.session.flush()
-                # Bu holatda login formaga qaytamiz
         else:
-            # Token yangilash muvaffaqiyatsiz bo'lsa, _handle_api_token_refresh o'zi login sahifasiga
-            # yo'naltirishi yoki xabar berishi kerak. Agar yo'naltirmasa, bu yerda:
+            # Tokenni yangilash muvaffaqiyatsiz bo'lsa, login sahifasiga qaytamiz
             return redirect(settings.LOGIN_URL)
 
-
+    # `next` parametrini sessiyaga saqlash
     if request.method == 'GET' and 'next' in request.GET:
         request.session['login_next_url'] = request.GET.get('next')
 
@@ -176,62 +177,66 @@ def login_view(request):
         api_client = HemisAPIClient()
 
         try:
-            logger.info(f"Login attempt for user: {username}")
-            api_token, refresh_data = api_client.login(username, password) # refresh_data endi dict yoki string bo'lishi mumkin
+            logger.info(f"Foydalanuvchi '{username}' uchun tizimga kirishga urinish.")
+            api_token, refresh_data = api_client.login(username, password)
             
-            logger.info(f"Login successful for {username}, fetching account data with new token.")
+            logger.info(f"'{username}' uchun login muvaffaqiyatli, yangi token bilan ma'lumotlar olinmoqda.")
             student_info_from_api = api_client.get_account_me(api_token_override=api_token)
 
             if not student_info_from_api or not isinstance(student_info_from_api, dict):
                 log_id = f"{log_id_base}_NODATA"
-                logger.error(f"Error Log ID: {log_id} - No student data received from API for {username} or data is not a dict. API Response: {str(student_info_from_api)[:250]}")
-                messages.error(request, f"API dan ma'lumot olishda xatolik. (Xatolik ID: {log_id})")
+                logger.error(f"Xatolik ID: {log_id} - '{username}' uchun API'dan talaba ma'lumotlari kelmadi yoki format noto'g'ri. Javob: {str(student_info_from_api)[:250]}")
+                messages.error(request, f"API dan ma'lumot olishda xatolik yuz berdi. (ID: {log_id})")
                 return render(request, 'auth_app/login.html', {'form': form})
 
             with transaction.atomic():
+                # 1. API ma'lumotlarini model uchun tayyorlash
                 student_defaults = map_api_data_to_student_model_defaults(student_info_from_api, username)
-                if not student_defaults: # Agar map_api_data_to_student_model_defaults bo'sh qaytarsa
+                if not student_defaults:
                     raise ValueError("API ma'lumotlarini modellashtirishda xatolik.")
 
+                # 2. Talaba ma'lumotlarini bazada yaratish yoki yangilash
                 student, created = Student.objects.update_or_create(
                     username=username,
-                    defaults=student_defaults # update_or_create o'zi o'zgarishlarni saqlaydi
+                    defaults=student_defaults
                 )
+                
+                # --- ENG MUHIM QO'SHIMCHA ---
+                # 3. Ma'lumotnoma jadvallarini (Fakultet, Yo'nalish va h.k.) sinxronlash
+                sync_reference_models_from_student(student)
+                # -------------------------
             
+            # 4. Sessiyani sozlash
             request.session['api_token'] = api_token
             request.session['student_db_id'] = student.id
             request.session['username_display'] = str(student)
             
-            expires_in_login = settings.SESSION_COOKIE_AGE # default
+            expires_in_login = settings.SESSION_COOKIE_AGE
             refresh_cookie_login = None
 
-            if isinstance(refresh_data, str): # Agar refresh_data to'g'ridan-to'g'ri cookie string bo'lsa
+            if isinstance(refresh_data, str):
                 refresh_cookie_login = refresh_data
             elif isinstance(refresh_data, dict):
                 if 'expires_in' in refresh_data:
                     try:
                         expires_in_login = int(refresh_data['expires_in'])
                     except (ValueError, TypeError):
-                        logger.warning(f"Login API dan kelgan 'expires_in' ({refresh_data['expires_in']}) yaroqsiz.")
+                        logger.warning(f"Login API javobidagi 'expires_in' ({refresh_data['expires_in']}) yaroqsiz.")
                 
-                if 'refresh_token_cookie_value' in refresh_data:
-                    refresh_cookie_login = refresh_data['refresh_token_cookie_value']
-                elif 'refresh_cookie' in refresh_data: # Boshqa nom bilan
-                    refresh_cookie_login = refresh_data['refresh_cookie']
-                # Agar refresh token to'g'ridan-to'g'ri 'refresh_token' kaliti bilan kelsa:
-                # elif 'refresh_token' in refresh_data: 
-                #    request.session['hemis_refresh_token_value'] = refresh_data['refresh_token'] # Buni saqlash kerak bo'lsa
+                # Turli nomlar bilan kelishi mumkin bo'lgan refresh cookie'ni qidirish
+                refresh_cookie_login = refresh_data.get('refresh_token_cookie_value') or refresh_data.get('refresh_cookie')
             
             request.session['api_token_expiry_timestamp'] = timezone.now().timestamp() + expires_in_login
             
             if refresh_cookie_login:
                 request.session['hemis_refresh_cookie'] = refresh_cookie_login
             
-            request.session.set_expiry(settings.SESSION_COOKIE_AGE) # Django sessiyasining muddati
+            request.session.set_expiry(settings.SESSION_COOKIE_AGE)
 
-            display_name = student_defaults.get('full_name_api') or student.username
+            # 5. Muvaffaqiyatli kirish va yo'naltirish
+            display_name = student.short_name_api or student.username
             messages.success(request, f"Xush kelibsiz, {display_name}!")
-            logger.info(f"User {username} logged in. Session expiry: {request.session.get_expiry_date()}, API token expiry: {timezone.datetime.fromtimestamp(request.session['api_token_expiry_timestamp'])}")
+            logger.info(f"Foydalanuvchi '{username}' tizimga kirdi. Sessiya muddati: {request.session.get_expiry_date()}, API token muddati: {timezone.datetime.fromtimestamp(request.session['api_token_expiry_timestamp'])}")
             
             next_url = request.session.pop('login_next_url', None) or request.GET.get('next')
             return redirect(next_url or 'dashboard')
@@ -239,38 +244,30 @@ def login_view(request):
         except APIClientException as e:
             log_id = f"{log_id_base}_APICLI"
             logger.error(
-                f"Error Log ID: {log_id} - User: {username}, APIClientException: {e.args[0]}, "
-                f"Status: {e.status_code}, API Response: {str(e.response_data)[:250]}, URL: {e.url}",
-                exc_info=False
+                f"Xatolik ID: {log_id} - Foydalanuvchi: {username}, APIClientException: {e.args[0]}, "
+                f"Status: {e.status_code}, API Javob: {str(e.response_data)[:250]}, URL: {e.url}"
             )
-            user_message = str(e.args[0] if e.args else "Noma'lum API xatosi")
-            if e.status_code in [400, 401, 403] or \
-               (isinstance(user_message, str) and any(term in user_message.lower() for term in ["token", "authentication", "авторизации", "credentials", "login", "parol", "not found", "no active account"])):
+            # Foydalanuvchiga tushunarli xabar berish
+            if e.status_code in [400, 401, 403]:
                  user_message = "Login yoki parol xato."
-            elif e.status_code == 503 or (e.status_code is None and any(term in user_message.lower() for term in ["connection", "ulan", "refused"])):
-                user_message = "API serveriga ulanib bo'lmadi. Internet aloqangizni tekshiring yoki keyinroq urinib ko'ring."
-            elif e.status_code == 504 or (e.status_code is None and "timeout" in user_message.lower()):
-                user_message = "API serveridan javob kutish vaqti tugadi."
-            elif e.status_code == 404 and e.url and "/auth/login" in str(e.url):
-                 user_message = "Autentifikatsiya xizmati manzili noto'g'ri sozlanган."
-            elif not user_message or user_message == "Noma'lum API xatosi":
+            elif e.status_code in [503, 504] or e.status_code is None:
+                user_message = "API serveriga ulanishda muammo yuz berdi. Iltimos, keyinroq qayta urinib ko'ring."
+            else:
                  user_message = "API bilan bog'lanishda noma'lum xatolik."
-
-            messages.error(request, f"{user_message} (Xatolik ID: {log_id})")
+            messages.error(request, f"{user_message} (ID: {log_id})")
         
-        except ValueError as ve: # Masalan, map_api_data_to_student_model_defaults xatolik qaytarsa
+        except ValueError as ve:
             log_id = f"{log_id_base}_VALERR"
-            logger.error(f"Error Log ID: {log_id} - User: {username}, ValueError: {ve}", exc_info=True)
-            messages.error(request, f"Ma'lumotlarni qayta ishlashda xatolik. (Xatolik ID: {log_id})")
+            logger.error(f"Xatolik ID: {log_id} - Foydalanuvchi: {username}, Ma'lumotlarni qayta ishlashda xatolik: {ve}", exc_info=True)
+            messages.error(request, f"Ma'lumotlarni qayta ishlashda xatolik yuz berdi. (ID: {log_id})")
 
         except Exception as e:
             log_id = f"{log_id_base}_UNEXP"
-            logger.critical(f"Error Log ID: {log_id} - User: {username}, Unexpected error in login_view: {type(e).__name__} - {e}", exc_info=True)
-            messages.error(request, f"Noma'lum tizim xatoligi yuz berdi. Iltimos, administratorga murojaat qiling. (Xatolik ID: {log_id})")
+            logger.critical(f"Xatolik ID: {log_id} - Foydalanuvchi: {username}, login_view'da kutilmagan xatolik: {type(e).__name__} - {e}", exc_info=True)
+            messages.error(request, f"Noma'lum tizim xatoligi. Administratorga murojaat qiling. (ID: {log_id})")
 
     context = {'form': form}
     return render(request, 'auth_app/login.html', context)
-
 
 def logout_view(request):
     api_token = request.session.get('api_token')
@@ -354,9 +351,19 @@ def dashboard_view(request):
 
 
 
+# auth_app/views.py
+
+# ... boshqa importlar ...
+import logging
+logger = logging.getLogger(__name__)
+
+# ... boshqa view'lar ...
+
+
+# auth_app/views.py
+
 @method_decorator(custom_login_required_with_token_refresh, name='dispatch')
 class TestListView(ListView):
-    """Talaba uchun mavjud testlar ro'yxati."""
     model = Test
     template_name = 'auth_app/test_list.html'
     context_object_name = 'tests'
@@ -365,19 +372,96 @@ class TestListView(ListView):
     def get_queryset(self):
         student = self.request.current_student
         now = timezone.now()
-        # API view'dagi logikani takrorlaymiz
-        queryset = Test.objects.filter(
-            Q(status=Test.Status.ACTIVE),
-            Q(start_time__isnull=True) | Q(start_time__lte=now),
-            Q(end_time__isnull=True) | Q(end_time__gte=now)
-        ).filter(
-            Q(faculties__isnull=True) | Q(faculties__id=student.faculty_id_api),
-            Q(specialties__isnull=True) | Q(specialties__id=student.specialty_id_api),
-            Q(groups__isnull=True) | Q(groups__id=student.group_id_api)
-        ).exclude(
-            Q(allow_once=True) & Q(responses__student=student, responses__is_completed=True)
+
+        # Talabaning ma'lumotlari mavjudligini tekshirish
+        if not all([student.faculty_id_api, student.specialty_id_api, student.group_id_api, student.level_code]):
+            logger.warning(f"Talaba '{student.username}' uchun to'liq ma'lumotlar (fakultet, yo'nalish, guruh, kurs) mavjud emas. Testlar ko'rsatilmaydi.")
+            return Test.objects.none() # Bo'sh ro'yxat qaytarish
+
+        # Aktiv va vaqti to'g'ri keladigan testlarni olish
+        active_tests = Test.objects.filter(
+            status=Test.Status.ACTIVE,
+            start_time__lte=now
+        ).filter(Q(end_time__isnull=True) | Q(end_time__gte=now))
+
+        # Ruxsatlar bo'yicha filtrlash
+        allowed_tests = active_tests.filter(
+            Q(faculties=student.faculty_id_api) | Q(faculties__isnull=True),
+            Q(specialties=student.specialty_id_api) | Q(specialties__isnull=True),
+            Q(groups=student.group_id_api) | Q(groups__isnull=True),
+            Q(levels=student.level_code) | Q(levels__isnull=True),
+        )
+
+        # Yakunlangan testlarni chiqarib tashlash
+        final_queryset = allowed_tests.exclude(
+            allow_once=True,
+            responses__student=student,
+            responses__is_completed=True
         ).distinct().order_by('-start_time', '-created_at')
-        return queryset
+        
+        return final_queryset
+
+
+@custom_login_required_with_token_refresh
+def take_test_view(request, test_id):
+    test = get_object_or_404(Test, pk=test_id)
+    student = request.current_student
+
+    # --- QAT'IY RUXSAT TEKSHIRUVI ---
+    is_allowed = True
+    error_message = ""
+    now = timezone.now()
+
+    # 1. Status tekshiruvi
+    if test.status != Test.Status.ACTIVE:
+        is_allowed = False
+        error_message = "Bu test hozir aktiv emas."
+
+    # 2. Vaqt tekshiruvi
+    if is_allowed and not ((test.start_time is None or test.start_time <= now) and (test.end_time is None or test.end_time >= now)):
+        is_allowed = False
+        error_message = "Test vaqti to'g'ri kelmadi."
+
+    # 3. Fakultet, Yo'nalish, Guruh, Kurs tekshiruvi
+    if is_allowed and test.faculties.exists() and not test.faculties.filter(id=student.faculty_id_api).exists():
+        is_allowed = False
+        error_message = "Sizning fakultetingizga ruxsat yo'q."
+    
+    if is_allowed and test.specialties.exists() and not test.specialties.filter(id=student.specialty_id_api).exists():
+        is_allowed = False
+        error_message = "Sizning yo'nalishingizga ruxsat yo'q."
+
+    if is_allowed and test.groups.exists() and not test.groups.filter(id=student.group_id_api).exists():
+        is_allowed = False
+        error_message = "Sizning guruhingizga ruxsat yo'q."
+
+    if is_allowed and test.levels.exists() and not test.levels.filter(code=student.level_code).exists():
+        is_allowed = False
+        error_message = "Sizning kursingizga ruxsat yo'q."
+
+    if not is_allowed:
+        messages.error(request, f"Sizga bu testni topshirishga ruxsat yo'q. Sabab: {error_message}")
+        return redirect('test-list')
+    
+    # 4. Yakunlangan testni tekshirish
+    if test.allow_once and SurveyResponse.objects.filter(test=test, student=student, is_completed=True).exists():
+        messages.warning(request, "Siz bu testni allaqachon topshirib bo'lgansiz.")
+        return redirect('test-detail', pk=test.id)
+
+    # Agar barcha tekshiruvlardan o'tsa, testni boshlash
+    response_obj, created = SurveyResponse.objects.get_or_create(
+        student=student, test=test, defaults={'is_completed': False}
+    )
+    
+    context = {
+        'test_id': test.id,
+        'test_title': test.title,
+        'response_id': response_obj.id,
+        'api_token': request.session.get('api_token'),
+        'api_test_detail_url': reverse('api:api-test-detail', kwargs={'pk': test.id}),
+        'api_test_submit_url': reverse('api:api-test-submit', kwargs={'pk': response_obj.id})
+    }
+    return render(request, 'auth_app/take_test.html', context)
 
 @method_decorator(custom_login_required_with_token_refresh, name='dispatch')
 class TestDetailView(DetailView):
@@ -395,59 +479,59 @@ class TestDetailView(DetailView):
             SurveyResponse.objects.filter(test=test, student=student, is_completed=True).exists()
         return context
 
-@custom_login_required_with_token_refresh
-def take_test_view(request, test_id):
-    """
-    Test topshirish sahifasi.
-    Bu funksiya React.js uchun ma'lumotlarni tayyorlab, shablonni render qiladi.
-    """
-    # Testni topish va uning holati "Aktiv" ekanligini tekshirish
-    test = get_object_or_404(Test, pk=test_id, status=Test.Status.ACTIVE)
-    student = request.current_student
+# auth_app/views.py
 
-    # Barcha ruxsat tekshiruvlari (fakultet, IP manzil va hokazo)
-    now = timezone.now()
-    if not (
-        (test.start_time is None or test.start_time <= now) and
-        (test.end_time is None or test.end_time >= now) and
-        (not test.faculties.exists() or student.faculty_id_api in test.faculties.values_list('id', flat=True)) and
-        (not test.specialties.exists() or student.specialty_id_api in test.specialties.values_list('id', flat=True)) and
-        (not test.groups.exists() or student.group_id_api in test.groups.values_list('id', flat=True))
-    ):
-        messages.error(request, "Sizga bu testni topshirishga ruxsat yo'q.")
-        return redirect('test-list')
+# ... boshqa importlar va funksiyalar ...
 
-    if test.allow_once and SurveyResponse.objects.filter(test=test, student=student, is_completed=True).exists():
-        messages.warning(request, "Siz bu testni allaqachon topshirib bo'lgansiz.")
-        return redirect('test-detail', pk=test.id)
+# auth_app/views.py
 
-    # Test urinishini (SurveyResponse) yaratish yoki hali tugallanmaganini olish
-    response_obj, created = SurveyResponse.objects.get_or_create(
-        student=student, test=test, is_completed=False
-    )
-    
-    # Bu sahifa asosan React ilovasini ishga tushirish uchun xizmat qiladi.
-    # React esa API orqali kerakli ma'lumotlarni o'zi yuklab oladi.
-    context = {
-        'test_id': test.id,
-        'test_title': test.title,
-        'response_id': response_obj.id,
-        # React uchun kerak bo'ladigan API ma'lumotlari
-        'api_token': request.session.get('api_token'),
-        'api_test_detail_url': reverse('api:api-test-detail', kwargs={'pk': test.id}),
-        'api_test_submit_url': reverse('api:api-test-submit', kwargs={'pk': response_obj.id})
-    }
-    return render(request, 'auth_app/take_test.html', context)
+# ... boshqa importlar va funksiyalar ...
 
 @method_decorator(custom_login_required_with_token_refresh, name='dispatch')
 class TestResultDetailView(DetailView):
-    """Talabaning bitta test natijasini ko'rsatish."""
+    """Talabaning bitta test bo'yicha yakuniy natijasini ko'rsatish sahifasi."""
     model = SurveyResponse
     template_name = 'auth_app/test_result_detail.html'
     context_object_name = 'result'
 
     def get_queryset(self):
-        # Faqat o'ziga tegishli natijalarni ko'ra olishini ta'minlash
-        return SurveyResponse.objects.filter(student=self.request.current_student)
-    
-# auth_app/views.py
+        # Talaba faqat o'ziga tegishli natijalarni ko'ra olishini ta'minlash
+        return SurveyResponse.objects.filter(
+            student=self.request.current_student,
+            is_completed=True
+        ).select_related('test', 'student')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        result = self.get_object()
+
+        # Talabaning javoblarini savollari bilan birga olish
+        # Bu so'rov optimallashtirilgan, chunki u kerakli barcha ma'lumotlarni oldindan yuklab oladi
+        student_answers = result.student_answers.select_related(
+            'question', 
+            'chosen_answer'
+        ).prefetch_related(
+            'question__answers' # Har bir savolning barcha variantlarini ham olish
+        ).order_by('question__order', 'question__id')
+
+        # Shablon uchun ma'lumotlarni tayyorlash
+        detailed_answers = []
+        for student_answer in student_answers:
+            # To'g'ri javob variantini topish
+            correct_answer = None
+            for answer in student_answer.question.answers.all():
+                if answer.is_correct:
+                    correct_answer = answer
+                    break
+
+            detailed_answers.append({
+                'question_text': student_answer.question.text,
+                'chosen_answer': student_answer.chosen_answer,
+                'correct_answer': correct_answer,
+                'is_correct': student_answer.chosen_answer and student_answer.chosen_answer.is_correct
+            })
+
+        context['detailed_answers'] = detailed_answers
+        return context
+
+

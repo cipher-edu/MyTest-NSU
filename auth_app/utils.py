@@ -140,3 +140,47 @@ def generate_qr_code_image(data, prefix=""):
     qr.save(buffer, format="PNG")
     filename = f"{prefix}{data}_qr.png"
     return ContentFile(buffer.getvalue(), name=filename)
+
+
+# auth_app/utils.py
+
+# ... mavjud importlar va funksiyalar ...
+from .models import Faculty, Specialty, Group, Level, Student
+
+def sync_reference_models_from_student(student: Student):
+    """
+    Talaba ma'lumotlari asosida Fakultet, Yo'nalish, Guruh va Kurs
+    ma'lumotnomalarini yaratadi yoki yangilaydi.
+    Bu ma'lumotlar bazasida ID'lar mosligini ta'minlaydi.
+    """
+    logger.info(f"'{student}' uchun ma'lumotnomalarni sinxronlash boshlandi.")
+    
+    # Fakultetni sinxronlash
+    if student.faculty_id_api and student.faculty_name_api:
+        Faculty.objects.update_or_create(
+            id=student.faculty_id_api,
+            defaults={'name': student.faculty_name_api.strip()}
+        )
+
+    # Yo'nalishni sinxronlash
+    if student.specialty_id_api and student.specialty_name_api:
+        Specialty.objects.update_or_create(
+            id=student.specialty_id_api,
+            defaults={'name': student.specialty_name_api.strip()}
+        )
+
+    # Guruhni sinxronlash
+    if student.group_id_api and student.group_name_api:
+        Group.objects.update_or_create(
+            id=student.group_id_api,
+            defaults={'name': student.group_name_api.strip()}
+        )
+
+    # Kursni sinxronlash
+    if student.level_code and student.level_name:
+        Level.objects.update_or_create(
+            code=student.level_code,
+            defaults={'name': student.level_name.strip()}
+        )
+    
+    logger.info(f"'{student}' uchun ma'lumotnomalarni sinxronlash yakunlandi.")

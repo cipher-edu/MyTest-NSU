@@ -1,48 +1,240 @@
-{% extends 'auth_app/base.html' %}
+
 {% load static %}
-{% load i18n %}
 
-{% block page_title %}Test Yechish: {{ test_title }}{% endblock %}
-
-{% block extra_css %}
-<style>
-    /* React ilovasi to'liq balandlikni egallashi uchun */
-    main {
-        flex-grow: 1;
-        display: flex;
-        flex-direction: column;
-    }
-    main > .max-w-7xl {
-        flex-grow: 1;
-        display: flex;
-        flex-direction: column;
-    }
-</style>
-{% endblock %}
+{% block page_title %}Test jarayoni: {{ test_title }}{% endblock %}
 
 {% block content %}
-<div id="react-test-app" class="flex-grow flex flex-col justify-center items-center">
-    <!-- React.js ilovasi shu yerga yuklanadi -->
-    <div class="text-center">
-        <div role="status" class="flex items-center justify-center">
-            <svg aria-hidden="true" class="w-12 h-12 text-gray-200 animate-spin fill-primary-600" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z" fill="currentColor"/>
-                <path d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z" fill="currentFill"/>
-            </svg>
-            <span class="sr-only">Yuklanmoqda...</span>
+{# Asosiy konteyner. Barcha o'zgarishlar shu yerda sodir bo'ladi #}
+<div id="test-app-container" class="max-w-4xl mx-auto">
+
+    {# 1. Test nomi va taymer uchun joy #}
+    <div id="test-header" class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-md p-4 mb-6 sticky top-20 z-30" style="display: none;">
+        <div class="flex justify-between items-center">
+            <h1 id="test-title-display" class="text-xl md:text-2xl font-bold text-slate-800 truncate"></h1>
+            <div id="timer" class="text-xl md:text-2xl font-bold text-white bg-red-600 rounded-lg px-4 py-2 tabular-nums">--:--</div>
         </div>
-        <p class="mt-4 text-slate-600 font-semibold">Test sahifasi yuklanmoqda, iltimos kuting...</p>
     </div>
+
+    {# 2. Savollar chiqadigan joy #}
+    <div id="questions-container" class="space-y-5">
+        {# Boshlang'ich yuklanish holati #}
+        <div id="loading-spinner" class="bg-white rounded-2xl p-8 text-center flex flex-col items-center justify-center min-h-[300px]">
+            <div class="w-12 h-12 border-4 border-slate-200 border-t-primary-600 rounded-full animate-spin"></div>
+            <h4 class="mt-4 text-lg font-semibold text-slate-700">Test ma'lumotlari yuklanmoqda...</h4>
+            <p class="text-slate-500">Iltimos, kuting.</p>
+        </div>
+    </div>
+
+    {# 3. Yakunlash tugmasi #}
+    <button id="submit-btn" class="w-full mt-8 px-6 py-4 bg-green-600 rounded-xl font-bold text-lg text-white hover:bg-green-700 transition-all duration-300 shadow-lg hover:shadow-xl disabled:bg-slate-300 disabled:cursor-not-allowed disabled:shadow-none" style="display: none;">
+        Testni Yakunlash
+    </button>
+    
+    {# 4. Natija ko'rsatiladigan joy #}
+    <div id="result-container" class="hidden"></div>
+
 </div>
 {% endblock %}
 
+
 {% block extra_js %}
-{{ config_data|json_script:"app-config" }}
+{# --- Django ma'lumotlarini JavaScript uchun xavfsiz saqlash --- #}
+{{ test_id|json_script:"test-id" }}
+{{ response_id|json_script:"response-id" }}
+{{ api_token|json_script:"api-token" }}
+{{ api_test_detail_url|json_script:"api-test-detail-url" }}
+{{ api_test_submit_url|json_script:"api-test-submit-url" }}
+<script type="application/json" id="result-page-url-base">"/results/"</script>
+<script type="application/json" id="csrf-token">{{ csrf_token }}</script>
+
+
+{# --- SOF JAVASCRIPT KODI --- #}
 <script>
-    // Django'dan olingan ma'lumotlarni global o'zgaruvchiga yuklash
-    const configElement = document.getElementById('app-config');
-    window.APP_CONFIG = JSON.parse(configElement.textContent);
+document.addEventListener('DOMContentLoaded', () => {
+
+    // ----- GLOBAL O'ZGARUVCHILAR VA DOM ELEMENTLARI -----
+    let selectedAnswers = {};
+    let testData = null;
+    let timerIntervalId = null;
+
+    const testContainer = document.getElementById('test-app-container');
+    const headerContainer = document.getElementById('test-header');
+    const titleDisplay = document.getElementById('test-title-display');
+    const timerDisplay = document.getElementById('timer');
+    const questionsContainer = document.getElementById('questions-container');
+    const submitBtn = document.getElementById('submit-btn');
+    const resultContainer = document.getElementById('result-container');
+    const loadingSpinner = document.getElementById('loading-spinner');
+
+    // --- XATOLIK TUZATILDI: Django'dan ma'lumotlarni o'qib olish ---
+    const apiToken = JSON.parse(document.getElementById('api-token').textContent);
+    const testDetailUrl = JSON.parse(document.getElementById('api-test-detail-url').textContent);
+    const testSubmitUrl = JSON.parse(document.getElementById('api-test-submit-url').textContent);
+    const resultPageUrlBase = JSON.parse(document.getElementById('result-page-url-base').textContent);
+    const csrfToken = JSON.parse(document.getElementById('csrf-token').textContent);
+
+    
+    // ----- ASOSIY FUNKSIYALAR -----
+
+    function formatTime(seconds) {
+        if (seconds === null || isNaN(seconds)) return '∞';
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    }
+
+    function startTimer(seconds) {
+        if (seconds === null) {
+            timerDisplay.textContent = '∞';
+            return;
+        }
+        let timeLeft = seconds;
+        timerDisplay.textContent = formatTime(timeLeft);
+        timerIntervalId = setInterval(() => {
+            timeLeft--;
+            timerDisplay.textContent = formatTime(timeLeft);
+            if (timeLeft <= 0) {
+                clearInterval(timerIntervalId);
+                submitTest();
+            }
+        }, 1000);
+    }
+
+    function renderTest(data) {
+        testData = data;
+        titleDisplay.textContent = data.title;
+        headerContainer.style.display = 'flex'; // 'block' o'rniga 'flex'
+
+        const questionsHtml = data.questions.map((question, index) => `
+            <div class="bg-white rounded-2xl shadow-md overflow-hidden animate-fade-in" style="animation-delay: ${index * 100}ms">
+                <div class="p-5 border-b border-slate-100">
+                    <p class="font-semibold text-slate-800">
+                        <span class="text-primary-600">${index + 1}-Savol.</span> ${question.text}
+                    </p>
+                </div>
+                <div class="divide-y divide-slate-100">
+                    ${question.answers.map(answer => `
+                        <label class="flex items-center p-5 cursor-pointer hover:bg-slate-50 transition-colors has-[:checked]:bg-primary-50 has-[:checked]:text-primary-700">
+                            <input
+                                type="radio"
+                                name="question-${question.id}"
+                                class="h-5 w-5 border-slate-300 focus:ring-primary-500 text-primary-600 form-radio"
+                                data-question-id="${question.id}"
+                                data-answer-id="${answer.id}"
+                            />
+                            <span class="ml-4 text-slate-700">${answer.text}</span>
+                        </label>
+                    `).join('')}
+                </div>
+            </div>
+        `).join('');
+
+        questionsContainer.innerHTML = questionsHtml;
+        submitBtn.style.display = 'block';
+    }
+
+    function renderResult(resultData) {
+        clearInterval(timerIntervalId);
+        
+        const resultUrl = `${resultPageUrlBase}${resultData.id}/`;
+        const resultHtml = `
+            <div class="bg-white rounded-2xl shadow-lg p-8 text-center animate-fade-in">
+                <div class="w-20 h-20 mx-auto bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <h2 class="text-3xl font-bold text-slate-800">Test Yakunlandi!</h2>
+                <p class="text-slate-500 mt-2">Sizning natijangiz muvaffaqiyatli saqlandi.</p>
+                <div class="my-6">
+                    <span class="text-6xl font-bold text-primary-600">${resultData.score}</span>
+                    <span class="text-2xl text-slate-500"> / ${resultData.max_score} ball</span>
+                </div>
+                <a href="${resultUrl}" 
+                   class="inline-block px-8 py-3 bg-primary-600 rounded-xl font-semibold text-white hover:bg-primary-700 transition-colors shadow-lg hover:shadow-primary-300">
+                   Batafsil tahlilni ko'rish
+                </a>
+            </div>
+        `;
+        testContainer.innerHTML = resultHtml;
+    }
+    
+    async function submitTest() {
+        if (submitBtn.disabled) return;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = `
+            <span class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin inline-block mr-2"></span>
+            Yuborilmoqda...
+        `;
+        clearInterval(timerIntervalId);
+
+        const answersPayload = Object.keys(selectedAnswers).map(questionId => ({
+            question_id: parseInt(questionId, 10),
+            answer_id: selectedAnswers[questionId],
+        }));
+
+        try {
+            const response = await fetch(testSubmitUrl, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${apiToken}`,
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify(answersPayload),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || `Server xatosi: ${response.status}`);
+            }
+
+            const result = await response.json();
+            renderResult(result);
+
+        } catch (err) {
+            questionsContainer.innerHTML = `<div class="bg-red-100 text-red-700 p-4 rounded-lg">${err.message}</div>`;
+            submitBtn.disabled = false;
+            submitBtn.textContent = "Qaytadan urinib ko'rish";
+        }
+    }
+
+    // ----- EVENT LISTENERS -----
+    
+    questionsContainer.addEventListener('change', (event) => {
+        if (event.target.type === 'radio') {
+            const questionId = event.target.dataset.questionId;
+            const answerId = parseInt(event.target.dataset.answerId, 10);
+            selectedAnswers[questionId] = answerId;
+        }
+    });
+
+    submitBtn.addEventListener('click', submitTest);
+
+    // ----- ILOVANI ISHGA TUSHIRISH -----
+    
+    fetch(testDetailUrl, {
+        headers: {
+            'Authorization': `Bearer ${apiToken}`,
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(err => { throw new Error(err.detail || `Server xatosi: ${response.status}`) });
+        }
+        return response.json();
+    })
+    .then(data => {
+        loadingSpinner.style.display = 'none';
+        renderTest(data);
+        startTimer(data.time_left_seconds);
+    })
+    .catch(err => {
+        loadingSpinner.style.display = 'none';
+        questionsContainer.innerHTML = `<div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-lg" role="alert"><p class="font-bold">Xatolik</p><p>${err.message}</p></div>`;
+    });
+
+});
 </script>
-<!-- React ilovasini yuklash uchun skript (build qilingan fayllar) -->
-<script src="{% static 'react_app/js/main.js' %}"></script>
 {% endblock %}

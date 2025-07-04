@@ -223,6 +223,11 @@ class StudentAdmin(admin.ModelAdmin):
 # Mavjud StudentAdmin sinfi o'zgarishsiz qoldiriladi
 # ...
 
+@admin.register(Level)
+class LevelAdmin(admin.ModelAdmin):
+    list_display = ('code', 'name')
+    search_fields = ('name', 'code')
+
 @admin.register(Faculty)
 class FacultyAdmin(admin.ModelAdmin):
     list_display = ('id', 'name')
@@ -269,11 +274,11 @@ class TestAdmin(admin.ModelAdmin):
         (None, {'fields': ('title', 'description', 'creator', 'status')}),
         ("Fayl orqali savollarni yuklash", {'fields': ('source_file',)}),
         ("Vaqt va qoidalar", {'fields': ('start_time', 'end_time', 'time_limit', 'allow_once', 'randomize_questions', 'allowed_ips')}),
-        ("Ruxsatlar (Fakultet, Yo'nalish, Guruh)", {'fields': ('faculties', 'specialties', 'groups')}),
+        ("Ruxsatlar (Fakultet, Yo'nalish, Guruh, Kurs)", {'fields': ('faculties', 'specialties', 'groups', 'levels')}),
     )
     
     # Katta hajmdagi ma'lumotlar uchun `raw_id_fields` yoki `filter_horizontal`
-    filter_horizontal = ('faculties', 'specialties', 'groups')
+    filter_horizontal = ('faculties', 'specialties', 'groups', 'levels')
     
     def get_queryset(self, request):
         return super().get_queryset(request).annotate(

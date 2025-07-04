@@ -1,0 +1,397 @@
+Disk formatlanganda undagi ma'lumotlar nima bo'ladi?
++o‘chirilmaydi
++ma'lumotlar boshqa disketga ko‘chiriladi
++ma'lumotlar boshqa disketga nusxalanadi
+#o‘chiriladi
+
+=
+
+O‘zbekiston Respublikasida «Axborotlashtirish to‘g‘risida»gi qonun qachon qabul qilingan?
++2001 yil 2 iyul
++2002 yil 18 noyabr
++2002 yil 12 dekabr
+#2004 yil 11 dekabr
+
+=
+
+ZiyoNET nima?
++Internet magazin
++Internet provayder kompaniyasi
++Xususiy virtual tarmoq
+#Jamoat ta’lim axborot tarmog‘i
+
+=
+
+Axborotning eng kichik o‘lchov birligi nima?
++bayt
++kilobayt
++bod
+#bit
+
+=
+
+1 bayt necha bitdan iborat?
++1024
++2
++512
+#8
+
+=
+
+1 kilobayt necha baytdan iborat?
++2
++8
++1000
+#1024
+
+=
+
+2 kilobayt necha bitni tashkil qiladi?
++2048
++256
++8192
+#16384
+
+=
+
+Axborot o‘lchov birliklari to‘g‘ri ko‘rsatilgan javob qaysi?
++bit, bayt va dyum
++millimetr, dyum, bit
++millimetr, dyum
+#bayt, kilobayt, megabayt, gigabayt, terabayt
+
+=
+
+Kitobning har bir beti 32 satr, har bir satr 64 simvoldan iborat bo‘lsa, 250 betda necha kilobayt axborot bor? (1 simvol = 1 bayt)
++4500000
++0,5
++500
+#562500
+
+=
+
+4 ta AVSD harflari kompyuter xotirasida necha bayt hajm egallaydi?
++8
++1
++32
+#4
+
+=
+
+Axborot o‘lchov birliklari o‘sib borish tartibida qaysi javobda to‘g‘ri?
++bit, bayt, kilobayt, megabayt, terabayt, gigabayt
++terabayt, gigabayt, kilobayt, megabayt, bayt, bit
++bayt, bit, kilobayt, megabayt, gigabayt, terabayt
+#bit, bayt, kilobayt, megabayt, gigabayt, terabayt
+
+=
+
+Skaner qanday vazifani bajaradi?
++Ma'lumotlarni qog‘ozga chiqaradi
++Matn yoki grafik ma'lumotlarni ekranda ko‘rsatadi
++Telefon tarmoqlari orqali ma'lumot almashadi
+#Qog‘ozdagi ma'lumotni kompyuter xotirasiga tasvir sifatida ko‘chiradi
+
+=
+
+Kesh xotira nima uchun ishlatiladi?
++Ma'lumotni doimiy saqlash uchun
++Ma'lumotlarni nusxalash uchun
++O‘chirilgan fayllarni vaqtincha saqlash uchun
+#Kompyuterning ishlash tezligini oshirish uchun
+
+=
+
+Foydalanuvchi ma'lumotlarni kompyuterga kiritish uchun asosiy qurilmalar qaysilar?
++Sichqoncha va elektr manbai simi
++Monitor va qattiq disk
++Tizimli blok va klaviatura
+#Klaviatura va skaner
+
+=
+
+Windows tizimida «Nastroyka» bo‘limi orqali nima amalga oshiriladi?
++Tizim komponentlarini tarmoqqa ulaydi
++Tizim komponentlarini virusga tekshiradi
++Papka va hujjatlarni ochadi, dasturni ishga tushiradi
+#Tizim komponentlarini ro‘yxatini ko‘rsatadi va sozlash imkonini beradi
+
+=
+
+O‘z belgisiga va nomiga ega bo‘lgan dastur yoki papkaga murojaatni amalga oshiruvchi ob'ekt nima deb ataladi?
++Fayl
++Papka
++Disk
+#Yorliq
+
+=
+
+Kursordan o‘ng tomondagi belgini o‘chirish uchun qaysi tugma ishlatiladi?
++Backspace
++Ctrl
++Shift
+#Del
+
+=
+
+Microsoft Word’da matnni to‘liq belgilash uchun qaysi buyruq ishlatiladi?
++Pravka→Videlit
++Fayl→Videlit vse
++Pravka→Kopirovat
+#Pravka→Videlit vse
+
+=
+
+Tizimda ishlayotgan barcha dasturlarning yorliqlarini qayerda ko‘rish mumkin?
++Ishchi stolda
++Masalalar panelida
++Konteksli menyuda
+#Pusk→Programmi
+
+=
+
+Microsoft Word’da Ctrl+Home tugmalari bosilsa, nima sodir bo‘ladi?
++Kursor hujjat oxiriga o‘tadi
++Kursor bir sahifa yuqoriga o‘tadi
++Kursor bir sahifa pastga o‘tadi
+#Kursor hujjat boshiga o‘tadi
+
+=
+
+Obyektlarning kontekst menyusi qanday chaqiriladi?
++Obyektni belgilab, sichqonchaning chap tugmasi bosiladi
++Obyektni belgilab, Enter tugmasi bosiladi
++Obyektni belgilab, sichqonchaning chap tugmasi ikki marta bosiladi
+#Obyektni belgilab, sichqonchaning o‘ng tugmasi bosiladi
+
+=
+
+Windows asosiy menyusi qanday chiqariladi?
++Kompyuter yoqilishi bilan avtomatik paydo bo‘ladi
++Total Commander dasturi yordamida
++Sichqonchaning o‘ng tugmasi bosiladi
+#Pusk tugmasi yordamida
+
+=
+
+Diskda o‘z nomiga ega bo‘lgan va fayllarni jamlagan ob'ekt nima deb ataladi?
++Dastur
++Fayl
++Yorliq
+#Papka
+
+=
+
+Ish stoli nima?
++Obyektlar joyi
++Dastur
++Papkalar joyi
+#Windowsning muloqot interfeysi
+
+=
+
+Tizimga kirishda login yoki parol noto‘g‘ri kiritilsa, nima sodir bo‘ladi?
++Tizim qayta yuklanadi
++Kompyuter o‘chadi
++Parolni qayta kiritish so‘raladi
+#Login va parolni qayta kiritish so‘raladi
+
+=
+
+«Moi dokumenti» yorlig‘ining vazifasi nima?
++Operativ xotira haqida ma'lumot beradi
++Disklarni tanlash va ishlash imkonini beradi
++O‘chirilgan fayllarni vaqtincha saqlaydi
+#Foydalanuvchining fayllari va papkalarini saqlaydi
+
+=
+
+«Moy kompyuter» yorlig‘ining vazifasi nima?
++O‘chirilgan fayllarni vaqtincha saqlaydi
++Foydalanuvchining fayllarini saqlaydi
++Operativ xotira haqida ma'lumot beradi
+#Disklar bilan ishlash va operativ xotira haqida ma'lumot olish
+
+=
+
+«Korzina» yorlig‘ining vazifasi nima?
++Operativ xotira haqida ma'lumot beradi
++Disklar bilan ishlash imkonini beradi
++Foydalanuvchining fayllarini saqlaydi
+#O‘chirilgan fayllarni vaqtincha saqlaydi
+
+=
+
+Sichqoncha yordamida ketma-ket fayllarni belgilash uchun qaysi tugma ishlatiladi?
++Ctrl
++Alt
++Ctrl+Enter
+#Shift
+
+=
+
+Microsoft Word’da jadval yacheykalarini birlashtirish qanday amalga oshiriladi?
++Jadval yacheykalarini birlashtirib bo‘lmaydi
++Yacheykalar belgilanadi, Tablitsa→Razbit yacheyki tanlanadi
++Yacheykalar belgilanadi, Tablitsa→Obyedinit yacheyki tanlanadi (ixtiyoriy yacheykada)
+#Yacheykalar belgilanadi, Tablitsa→Obyedinit yacheyki tanlanadi
+
+=
+
+Microsoft Word nima?
++Grafik muharriri
++Elektron jadval
++Berilganlar bazasini boshqarish tizimi
+#Matn muharriri
+
+=
+
+Microsoft Word’da hujjatni boshqa nom bilan saqlash qanday amalga oshiriladi?
++Fayl→Soxranit (yoki Ctrl+S)
++Fayl→Soxranit kak veb-stranitsu
++Fayl→Sozdat
+#Fayl→Soxranit kak
+
+=
+
+PowerPoint’da slaydlar dizaynini o‘zgartirish uchun qaysi amal ishlatiladi?
++Formi
++Struktura
++Element upravleniya
+#Konstruktor
+
+=
+
+Word’da nusxa olingan matnni joylashtirish uchun qaysi tugma ishlatiladi?
++Ctrl+Ins
++Alt+H
++Ctrl+Z
+#Shift+Ins
+
+=
+
+Word’da kiritilgan buyruqni bekor qilish uchun qaysi tugma ishlatiladi?
++Ctrl+P
++Alt+H
++Shift+F12
+#Ctrl+Z
+
+=
+
+Word’da faylni ochish uchun qaysi tugma ishlatiladi?
++Ctrl+P
++Alt+H
++Shift+F12
+#Ctrl+O
+
+=
+
+PowerPoint’da guruhlangan obyektlarni ajratish qanday amalga oshiriladi?
++Konteksli menyudan Gruppirovka→Gruppirovat
++Konteksli menyudan Gruppirovat→Peregruppirovat
++Asosiy menyudan Gruppirovat→Razgruppirovat
+#Konteksli menyudan Gruppirovat→Razgruppirovat
+
+=
+
+PowerPoint’da slaydlarni namoyish qilish uchun qaysi tugma ishlatiladi?
++F4
++F3
++F1
+#F5
+
+=
+
+Taqdimotlarni ochish uchun qanday amal bajariladi?
++Fayl→Sozdat
++Pravka→Otkrit
++Pravka→Vstavit
+#Fayl→Otkrit (yoki Ctrl+O)
+
+=
+
+Kompyuterda ma'lumotlarni to‘playdigan asosiy qurilma nima?
++Protsessor
++Tizim bloki
++CD/DVD o‘quvchi
+#Qattiq disk
+
+=
+
+Ma'lumotlarni bir kompyuterdan ikkinchisiga uzatib bo‘lmaydigan usul qaysi?
++USB-flesh orqali
++Elektron pochta orqali
++CD-diskka yozish orqali
+#Elektr manbaa simlari orqali
+
+=
+
+Korzinadan faylni qayta tiklash qanday amalga oshiriladi?
++Kerakli fayl tanlanadi, ochistit korzinu buyrug‘i tanlanadi
++Kerakli fayl tanlanadi, obnovit buyrug‘i tanlanadi
++Kerakli fayl tanlanadi, spisok buyrug‘i tanlanadi
+#Kerakli fayl tanlanadi, vosstanovit buyrug‘i tanlanadi
+
+=
+
+Kompyuter grafikasi turlari qaysilar?
++Vektorli va frontal grafika
++Tarmoqli va relyatsion grafika
++Rastrli va fraktal grafika
+#Rastrli, vektorli va fraktal grafika
+
+=
+
+Adobe Photoshop dasturi nima uchun mo‘ljallangan?
++Matnli ma'lumotlarni qayta ishlash uchun
++Jadvalli ma'lumotlarni qayta ishlash uchun
++Internet xizmatini ko‘rsatish uchun
+#Rastrli tasvirlarni qayta ishlash uchun
+
+=
+
+Vektorli grafika dasturi qaysi?
++Photoshop
++AutoCad
++ArchiCad
+#CorelDraw
+
+=
+
+1 dyum nechaga teng?
++2,34 sm
++2,32 sm
++2,52 sm
+#2,54 sm
+
+=
+
+Rastrli grafik muharrirlarida eng elementar ob'ekt nima?
++Aylana
++To‘g‘ri to‘rtburchak
++Simvol
+#Ekran nuqtasi (piksel)
+
+=
+
+Axborot texnologiyalari nima?
++Texnik vositalar jamlanmasi
++Kompyuter va qo‘shimcha qurilmalar
++Belgilangan maqsadga erishish usullari
+#Ma'lumotlarni yig‘ish, qayta ishlash va uzatish jarayoni
+
+=
+
+Kompyuter tarmog‘i nima?
++Kompyuterlarning bir xonaga joylashishi
++Barcha kompyuterlarning tashkilotga tegishli bo‘lishi
++Disketlar orqali ma'lumot almashish
+#Kompyuterlarning ma'lumot almashish uchun biriktirilishi
+
+=
+
+Lokal tarmoq nima?
++Butun dunyodagi kompyuterlarning birlashishi
++Uzoq masofadagi kompyuterlarni bog‘lovchi tarmoq
++Bir davlatdagi kompyuterlarning birlashishi
+#Bir tashkilotdagi kompyuterlarning ma'lumot almashish uchun birlashishi

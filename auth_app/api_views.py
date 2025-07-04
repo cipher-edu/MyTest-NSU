@@ -85,9 +85,10 @@ class TestListView(generics.ListAPIView):
         ).filter(
             Q(faculties__isnull=True) | Q(faculties__id=student.faculty_id_api),
             Q(specialties__isnull=True) | Q(specialties__id=student.specialty_id_api),
-            Q(groups__isnull=True) | Q(groups__id=student.group_id_api)
+            Q(groups__isnull=True) | Q(groups__id=student.group_id_api),
+            # (YANGI)
+            Q(levels__isnull=True) | Q(levels__code=student.level_code)
         ).exclude(
-            # `allow_once` yoqilgan va yakunlangan testlarni chiqarib tashlash
             Q(allow_once=True) & Q(responses__student=student, responses__is_completed=True)
         ).distinct().prefetch_related('questions')
         
@@ -109,7 +110,9 @@ class TestDetailView(generics.RetrieveAPIView):
             Q(status=Test.Status.ACTIVE) &
             (Q(faculties__isnull=True) | Q(faculties__id=student.faculty_id_api)) &
             (Q(specialties__isnull=True) | Q(specialties__id=student.specialty_id_api)) &
-            (Q(groups__isnull=True) | Q(groups__id=student.group_id_api))
+            (Q(groups__isnull=True) | Q(groups__id=student.group_id_api)) &
+            # (YANGI)
+            (Q(levels__isnull=True) | Q(levels__code=student.level_code))
         ).distinct()
 
 
