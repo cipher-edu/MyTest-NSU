@@ -1,69 +1,136 @@
+# auth_app/tasks.py
 from celery import shared_task
 from django.conf import settings
-from django.utils import timezone
+from django.db import transaction
 import logging
-from .services.hemis_api_service import HemisAPIClient, APIClientException
-from .models import Student
-from .utils import map_api_data_to_student_model_defaults, update_student_instance_with_defaults
+import re
+from .models import Test, Question, Answer
 
 logger = logging.getLogger(__name__)
 
-@shared_task(bind=True, name='auth_app.tasks.sync_student_profile_from_api', max_retries=3, default_retry_delay=60 * 5)
-def sync_student_profile_from_api(self, student_id, api_token=None):
-    try:
-        student = Student.objects.get(id=student_id)
-    except Student.DoesNotExist:
-        logger.error(f"Student with ID {student_id} not found in Celery task. Task will not retry.")
-        return f"Student ID {student_id} not found."
+def parse_test_file_content(file_content):
+    """
+    .txt fayl matnini o'qib, savol va javoblar ro'yxatini qaytaradi.
+    Bu versiya mustahkam bo'lib, ajratuvchilar atrofidagi ortiqcha bo'shliqlar
+    kabi turli formatlashdagi nomuvofiqliklarni ham ishlay oladi.
+    """
+    questions_data = []
     
-    effective_api_token = api_token
-    api_source_description = f"provided token for student {student.username}"
-
-    if not effective_api_token:
-        if hasattr(settings, 'HEMIS_SYSTEM_API_TOKEN') and settings.HEMIS_SYSTEM_API_TOKEN:
-             effective_api_token = settings.HEMIS_SYSTEM_API_TOKEN
-             api_source_description = f"system token for student {student.username} (ID: {student.student_id_number or student.username})"
-             logger.warning(f"Using HEMIS_SYSTEM_API_TOKEN for task, but get_account_me() might fetch system user's data, not student's, unless API is specifically designed for it or client uses student_id_number with this token.")
-        else:
-            logger.error(f"No API token provided for student ID {student_id} (username: {student.username}) in Celery task, and no system token configured.")
-            return f"API token required for student ID {student_id}."
+    # Qator tugashlarini normallashtirish va butun faylning bosh/oxiridagi bo'shliqlarni olib tashlash
+    content = file_content.replace('\r\n', '\n').strip()
     
-    try:
-        client = HemisAPIClient(api_token=effective_api_token)
-        student_info_from_api = client.get_account_me()
+    if not content:
+        return []
 
-        if student_info_from_api and isinstance(student_info_from_api, dict):
-            defaults = map_api_data_to_student_model_defaults(
-                student_info_from_api, 
-                student.username
-            )
-            if defaults:
-                update_student_instance_with_defaults(student, defaults)
-                logger.info(f"Successfully updated profile using {api_source_description} via Celery task.")
-                return f"Student ID {student_id} updated."
+    # Matnni savol bloklariga moslashuvchan regex yordamida ajratish.
+    question_blocks = re.split(r'\s*\n\s*=\s*\n\s*', content)
+    
+    for block in question_blocks:
+        block_content = block.strip()
+        if not block_content:
+            continue
+            
+        lines = [line.strip() for line in block_content.split('\n') if line.strip()]
+        
+        if len(lines) < 2:
+            continue
+
+        question_text = lines[0]
+        answers = []
+        correct_answer_found = False
+        
+        for line in lines[1:]:
+            if not line:
+                continue
+
+            is_correct = False
+            answer_text = ''
+
+            if line.startswith('#'):
+                is_correct = True
+                correct_answer_found = True
+                answer_text = line[1:].strip()
+            elif line.startswith('+'):
+                is_correct = False
+                answer_text = line[1:].strip()
             else:
-                logger.warning(f"Could not map API data for student ID {student_id} in Celery task. API data: {str(student_info_from_api)[:200]}")
-                return f"Failed to map API data for student ID {student_id}."
-        elif not student_info_from_api:
-            logger.warning(f"No data received from API for student ID {student_id} (username: {student.username}) using {api_source_description} in Celery task.")
-            return f"No API data for student ID {student_id}."
-        else:
-            logger.warning(f"Received non-dict data from API for student ID {student_id} using {api_source_description} in Celery task: {str(student_info_from_api)[:100]}")
-            return f"Invalid API data type for student ID {student_id}."
-    except APIClientException as e:
-        logger.error(f"APIClientException for student ID {student_id} (username: {student.username}) using {api_source_description} in Celery task: {e.args[0]} (Status: {e.status_code})", exc_info=True)
-        try:
-            if e.status_code in [401, 403]:
-                logger.warning(f"Token-related API error ({e.status_code}) for student {student.username}. Not retrying.")
-                return f"Token error for student {student.username}."
-            raise self.retry(exc=e, countdown=int(self.default_retry_delay * (2 ** self.request.retries)))
-        except self.MaxRetriesExceededError:
-            logger.error(f"Max retries exceeded for student ID {student_id} (username: {student.username}) in Celery task after APIClientException.")
-            return f"Max retries for student {student.username} (APIClientException)."
+                continue
+
+            if answer_text:
+                answers.append({
+                    'text': answer_text,
+                    'is_correct': is_correct
+                })
+
+        if question_text and answers and correct_answer_found:
+            questions_data.append({
+                'question': question_text,
+                'answers': answers,
+                'points': 1
+            })
+            
+    return questions_data
+
+
+@shared_task(bind=True, name='auth_app.tasks.process_test_file')
+def process_test_file_task(self, test_id):
+    try:
+        test = Test.objects.get(id=test_id)
+    except Test.DoesNotExist:
+        logger.error(f"Celery vazifasi uchun Test (ID: {test_id}) topilmadi.")
+        return f"Test ID {test_id} not found."
+
+    if not test.source_file:
+        logger.error(f"Test (ID: {test_id}) uchun manba fayl topilmadi.")
+        test.status = Test.Status.DRAFT
+        test.save(update_fields=['status'])
+        return f"Fayl topilmadi."
+
+    try:
+        file_content = test.source_file.read().decode('utf-8')
+        questions_data = parse_test_file_content(file_content)
+
+        if not questions_data:
+            logger.warning(f"Fayldan (Test ID: {test_id}) hech qanday savol o'qib bo'lmadi. Fayl bo'sh yoki formati noto'g'ri.")
+            test.status = Test.Status.DRAFT
+            test.save(update_fields=['status'])
+            return "Fayldan savollar topilmadi."
+
+        questions_created_count = 0
+        with transaction.atomic():
+            # Eski savollarni o'chirish (agar fayl qayta yuklansa)
+            test.questions.all().delete()
+            logger.info(f"Test (ID: {test.id}) uchun eski savollar o'chirildi.")
+
+            # Savol va javoblarni birma-bir yaratish
+            for i, q_data in enumerate(questions_data):
+                question = Question.objects.create(
+                    test=test,
+                    text=q_data['question'],
+                    points=q_data.get('points', 1),
+                    order=i + 1
+                )
+                questions_created_count += 1
+
+                for a_data in q_data['answers']:
+                    Answer.objects.create(
+                        question=question,
+                        text=a_data['text'],
+                        is_correct=a_data['is_correct']
+                    )
+            
+            logger.info(f"Tranzaksiya ichida {questions_created_count} ta savol va ularning javoblari yaratildi.")
+
+        # Jarayon tugagach, test statusini "Qoralama" ga o'tkazamiz
+        test.status = Test.Status.DRAFT
+        test.save(update_fields=['status'])
+        
+        logger.info(f"{questions_created_count} ta savol Test (ID: {test_id}) uchun muvaffaqiyatli yaratildi.")
+        return f"Successfully created {questions_created_count} questions for Test ID {test_id}."
+
     except Exception as e:
-        logger.error(f"Unexpected error updating student ID {student_id} (username: {student.username}) using {api_source_description} in Celery task: {e}", exc_info=True)
-        try:
-            raise self.retry(exc=e, countdown=int(self.default_retry_delay * (2 ** self.request.retries)))
-        except self.MaxRetriesExceededError:
-            logger.error(f"Max retries exceeded for student ID {student_id} (username: {student.username}) in Celery task after unexpected error.")
-            return f"Max retries for student {student.username} (unexpected error)."
+        logger.error(f"Test faylini (ID: {test_id}) qayta ishlashda kutilmagan xatolik: {e}", exc_info=True)
+        # Xatolik yuz bersa, test statusini yana "Qoralama" ga qaytarib, xabar beramiz
+        test.status = Test.Status.DRAFT
+        test.save(update_fields=['status'])
+        raise self.retry(exc=e, countdown=60)

@@ -31,3 +31,23 @@ class LoginForm(forms.Form):
 
 
 # --- Test Tizimi Uchun Yangi Formalar ---
+class TestUploadForm(forms.ModelForm):
+    """Admin panelida test yaratish va fayl yuklash uchun forma."""
+    
+    class Meta:
+        model = Test
+        fields = '__all__'
+
+    def clean_source_file(self):
+        file = self.cleaned_data.get('source_file')
+        if file:
+            # 1. Fayl kengaytmasini tekshirish
+            ext = os.path.splitext(file.name)[1]
+            if not ext.lower() == '.txt':
+                raise ValidationError("Faqat .txt formatidagi fayllarni yuklash mumkin.")
+
+            # 2. Fayl hajmini tekshirish (masalan, 5MB)
+            if file.size > 5 * 1024 * 1024:
+                raise ValidationError("Fayl hajmi 5MB dan oshmasligi kerak.")
+
+        return file

@@ -7,6 +7,14 @@ from django.db.models import Count
 import logging
 import os
 from .models import *
+
+
+from django.contrib import admin, messages
+from django.utils.html import format_html
+from django.urls import reverse
+from .models import *
+from .forms import TestUploadForm # Keyingi qadamda yaratiladi
+from .tasks import process_test_file_task # Keyingi qadamda yaratiladi
 logger = logging.getLogger(__name__)
 @admin.register(Student)
 class StudentAdmin(admin.ModelAdmin):
@@ -209,3 +217,110 @@ class StudentAdmin(admin.ModelAdmin):
         else:
             self.message_user(request, "Yangilash uchun talabalar tanlanmadi.", messages.INFO)
 
+# admin.py fayliga qo'shiladi
+
+
+# Mavjud StudentAdmin sinfi o'zgarishsiz qoldiriladi
+# ...
+
+@admin.register(Faculty)
+class FacultyAdmin(admin.ModelAdmin):
+    list_display = ('id', 'name')
+    search_fields = ('name', 'id')
+
+@admin.register(Specialty)
+class SpecialtyAdmin(admin.ModelAdmin):
+    list_display = ('id', 'name')
+    search_fields = ('name', 'id')
+
+@admin.register(Group)
+class GroupAdmin(admin.ModelAdmin):
+    list_display = ('id', 'name')
+    search_fields = ('name', 'id')
+
+class AnswerInline(admin.TabularInline):
+    model = Answer
+    extra = 1
+    fields = ('text', 'is_correct')
+
+@admin.register(Question)
+class QuestionAdmin(admin.ModelAdmin):
+    list_display = ('text', 'test', 'question_type', 'points')
+    list_filter = ('test', 'question_type')
+    search_fields = ('text', 'test__title')
+    inlines = [AnswerInline]
+
+class QuestionInline(admin.TabularInline):
+    model = Question
+    extra = 0
+    fields = ('text', 'question_type', 'points', 'order')
+    show_change_link = True
+    readonly_fields = ('text',) # Savollar fayldan yaratiladi, qo'lda o'zgartirilmaydi
+
+@admin.register(Test)
+class TestAdmin(admin.ModelAdmin):
+    form = TestUploadForm # Fayl yuklash logikasi uchun maxsus forma
+    list_display = ('title', 'status', 'creator', 'start_time', 'end_time', 'time_limit', 'question_count', 'max_score_display')
+    list_filter = ('status', 'creator', 'created_at', 'faculties', 'specialties')
+    search_fields = ('title', 'description', 'creator__username')
+    ordering = ('-created_at',)
+    
+    fieldsets = (
+        (None, {'fields': ('title', 'description', 'creator', 'status')}),
+        ("Fayl orqali savollarni yuklash", {'fields': ('source_file',)}),
+        ("Vaqt va qoidalar", {'fields': ('start_time', 'end_time', 'time_limit', 'allow_once', 'randomize_questions', 'allowed_ips')}),
+        ("Ruxsatlar (Fakultet, Yo'nalish, Guruh)", {'fields': ('faculties', 'specialties', 'groups')}),
+    )
+    
+    # Katta hajmdagi ma'lumotlar uchun `raw_id_fields` yoki `filter_horizontal`
+    filter_horizontal = ('faculties', 'specialties', 'groups')
+    
+    def get_queryset(self, request):
+        return super().get_queryset(request).annotate(
+            num_questions=models.Count('questions')
+        )
+
+    @admin.display(description="Savollar soni", ordering='num_questions')
+    def question_count(self, obj):
+        return obj.num_questions
+
+    @admin.display(description="Maksimal ball")
+    def max_score_display(self, obj):
+        return obj.max_score
+
+    def save_model(self, request, obj, form, change):
+        if not obj.pk:  # Faqat yangi obyekt yaratilganda
+            obj.creator = request.user
+        
+        # Fayl yuklangan bo'lsa, Celery vazifasini ishga tushiramiz
+        if 'source_file' in form.changed_data and form.cleaned_data['source_file']:
+            obj.status = Test.Status.PROCESSING # Holatni "qayta ishlanmoqda" ga o'tkazamiz
+            super().save_model(request, obj, form, change) # Avval testni saqlaymiz
+            
+            # Celery task ni chaqirish
+            process_test_file_task.delay(obj.id)
+            
+            self.message_user(request, "Fayl qabul qilindi va savollarni yaratish uchun navbatga qo'yildi. "
+                                       "Jarayon bir necha daqiqa vaqt olishi mumkin.", messages.INFO)
+        else:
+            super().save_model(request, obj, form, change)
+
+class StudentAnswerInline(admin.TabularInline):
+    model = StudentAnswer
+    extra = 0
+    readonly_fields = ('question', 'chosen_answer', 'is_correct_display')
+    can_delete = False
+
+    @admin.display(description="To'g'rimi?", boolean=True)
+    def is_correct_display(self, obj):
+        if obj.chosen_answer:
+            return obj.chosen_answer.is_correct
+        return None
+
+@admin.register(SurveyResponse)
+class SurveyResponseAdmin(admin.ModelAdmin):
+    list_display = ('student', 'test', 'score', 'start_time', 'end_time', 'is_completed')
+    list_filter = ('test', 'is_completed', 'student__faculty_name_api')
+    search_fields = ('student__full_name_api', 'student__username', 'test__title')
+    readonly_fields = ('student', 'test', 'start_time', 'end_time', 'score')
+    inlines = [StudentAnswerInline]

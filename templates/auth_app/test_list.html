@@ -1,0 +1,69 @@
+{% extends 'auth_app/base.html' %}
+
+{% block page_title %}Mavjud Testlar{% endblock %}
+
+{% block content %}
+<div class="animate-fade-in">
+    <div class="border-b border-slate-200 pb-5 mb-6">
+        <h1 class="text-4xl font-bold font-serif text-slate-900">Testlar</h1>
+        <p class="mt-2 text-lg text-slate-600">Siz uchun tayyorlangan imtihonlar va sinovlar ro'yxati.</p>
+    </div>
+
+    {% if tests %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for test in tests %}
+                <a href="{% url 'test-detail' test.pk %}" class="survey-card block card-reveal card-reveal-delay-{{ forloop.counter0|add:1 }}">
+                    <div class="p-6">
+                        <div class="flex justify-between items-start mb-4">
+                            <span class="status-badge status-badge-active">
+                                <ion-icon name="flash-outline" class="mr-1"></ion-icon> Aktiv
+                            </span>
+                            <div class="text-right">
+                                <p class="text-sm font-medium text-slate-700">{{ test.question_count }} savol</p>
+                                <p class="text-xs text-slate-500">{{ test.time_limit }} daqiqa</p>
+                            </div>
+                        </div>
+                        <h3 class="text-xl font-semibold text-slate-900 group-hover:text-primary-600 transition-colors">{{ test.title }}</h3>
+                        <p class="text-slate-500 mt-2 text-sm line-clamp-2">{{ test.description|default:"Test uchun qo'shimcha tavsif kiritilmagan." }}</p>
+                    </div>
+                    <div class="bg-slate-50 border-t border-slate-100 px-6 py-3 flex items-center justify-between text-xs text-slate-500">
+                        <span>
+                            <ion-icon name="time-outline" class="mr-1"></ion-icon>
+                            Boshlanish: {{ test.start_time|date:"d.m.Y"|default:"Hozir" }}
+                        </span>
+                        <span class="font-semibold text-primary-600">Boshlash <ion-icon name="arrow-forward-outline" class="ml-1"></ion-icon></span>
+                    </div>
+                </a>
+            {% endfor %}
+        </div>
+
+        <!-- Pagination -->
+        {% if is_paginated %}
+            <div class="mt-8 flex justify-center items-center space-x-2">
+                {% if page_obj.has_previous %}
+                    <a href="?page={{ page_obj.previous_page_number }}" class="px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors">
+                        <ion-icon name="chevron-back-outline"></ion-icon>
+                    </a>
+                {% endif %}
+                
+                <span class="text-sm text-slate-600">
+                    Sahifa {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
+                </span>
+
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}" class="px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors">
+                        <ion-icon name="chevron-forward-outline"></ion-icon>
+                    </a>
+                {% endif %}
+            </div>
+        {% endif %}
+
+    {% else %}
+        <div class="text-center bg-white border-2 border-dashed border-slate-200 rounded-2xl p-12 mt-8">
+            <ion-icon name="document-text-outline" class="text-6xl text-slate-300 mx-auto"></ion-icon>
+            <h3 class="mt-4 text-xl font-semibold text-slate-800">Testlar Topilmadi</h3>
+            <p class="mt-1 text-slate-500">Hozirda siz uchun mo'ljallangan aktiv testlar mavjud emas.</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

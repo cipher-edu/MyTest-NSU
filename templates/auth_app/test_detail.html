@@ -1,0 +1,80 @@
+{% extends 'auth_app/base.html' %}
+
+{% block page_title %}{{ test.title }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto animate-fade-in">
+    <div class="mb-6">
+        <a href="{% url 'test-list' %}" class="inline-flex items-center text-sm font-medium text-slate-600 hover:text-primary-600 transition-colors">
+            <ion-icon name="arrow-back-outline" class="mr-2"></ion-icon>
+            Barcha testlarga qaytish
+        </a>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-soft border border-slate-100 overflow-hidden">
+        <div class="p-8">
+            <h1 class="text-4xl font-bold font-serif text-slate-900">{{ test.title }}</h1>
+            <p class="mt-3 text-lg text-slate-600">{{ test.description|default_if_none:"" }}</p>
+        </div>
+
+        <div class="border-y border-slate-200 bg-slate-50/50 px-8 py-6">
+            <h3 class="text-lg font-semibold text-slate-800 mb-4">Test shartlari</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
+                <div class="flex items-start">
+                    <ion-icon name="list-outline" class="text-xl text-primary-600 mt-0.5 mr-3 flex-shrink-0"></ion-icon>
+                    <div>
+                        <dt class="font-medium text-slate-800">Savollar soni</dt>
+                        <dd class="text-slate-600">{{ test.question_count }} ta</dd>
+                    </div>
+                </div>
+                <div class="flex items-start">
+                    <ion-icon name="stopwatch-outline" class="text-xl text-primary-600 mt-0.5 mr-3 flex-shrink-0"></ion-icon>
+                    <div>
+                        <dt class="font-medium text-slate-800">Vaqt cheklovi</dt>
+                        <dd class="text-slate-600">{% if test.time_limit > 0 %}{{ test.time_limit }} daqiqa{% else %}Cheklanmagan{% endif %}</dd>
+                    </div>
+                </div>
+                <div class="flex items-start">
+                    <ion-icon name="trophy-outline" class="text-xl text-primary-600 mt-0.5 mr-3 flex-shrink-0"></ion-icon>
+                    <div>
+                        <dt class="font-medium text-slate-800">Maksimal ball</dt>
+                        <dd class="text-slate-600">{{ test.max_score }} ball</dd>
+                    </div>
+                </div>
+                <div class="flex items-start">
+                    <ion-icon name="repeat-outline" class="text-xl text-primary-600 mt-0.5 mr-3 flex-shrink-0"></ion-icon>
+                    <div>
+                        <dt class="font-medium text-slate-800">Urinishlar soni</dt>
+                        <dd class="text-slate-600">{% if test.allow_once %}Faqat bir marta{% else %}Cheklanmagan{% endif %}</dd>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="p-8">
+            {% if is_already_completed %}
+                <div class="text-center">
+                    <div class="bg-green-50 border-l-4 border-green-500 text-green-800 p-4 rounded-r-lg">
+                        <div class="flex">
+                            <div class="py-1"><ion-icon name="checkmark-done-circle-outline" class="text-2xl text-green-500 mr-3"></ion-icon></div>
+                            <div>
+                                <h4 class="font-bold">Test Yakunlangan</h4>
+                                <p class="text-sm">Siz bu testni allaqachon topshirib bo'lgansiz. Natijani ko'rishingiz mumkin.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <a href="#" class="mt-4 inline-block btn-secondary">Natijani ko'rish</a>
+                </div>
+            {% else %}
+                <div class="text-center">
+                    <p class="text-slate-600 mb-4">Diqqat! "Testni boshlash" tugmasini bosganingizdan so'ng, vaqt hisobi boshlanadi.</p>
+                    <a href="{% url 'test-take' test.id %}" class="btn-primary inline-flex items-center text-lg font-semibold px-10 py-3.5">
+                        <ion-icon name="play-circle-outline" class="mr-2 text-2xl"></ion-icon>
+                        Testni boshlash
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -5,6 +5,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.conf import settings
 from django.contrib import messages
 from django.db import transaction
+from django.db.models import Q
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.core.cache import cache
@@ -19,6 +20,23 @@ from .models import * # Barcha modellarni import qilish
 from .services.hemis_api_service import HemisAPIClient, APIClientException
 from .utils import map_api_data_to_student_model_defaults, update_student_instance_with_defaults
 
+
+import logging
+from django.shortcuts import render, redirect, get_object_or_404
+from django.conf import settings
+from django.contrib import messages
+from django.db import transaction
+from django.db.models import Q
+from django.urls import reverse
+from django.utils import timezone
+from django.http import Http404, HttpResponseForbidden
+from django.utils.decorators import method_decorator
+from django.views.generic import ListView, DetailView
+from .decorators import custom_login_required_with_token_refresh
+from .forms import *
+from .models import *
+from .services.hemis_api_service import HemisAPIClient, APIClientException
+from .utils import map_api_data_to_student_model_defaults
 logger = logging.getLogger(__name__)
 REQUESTS_VERIFY_SSL = getattr(settings, 'REQUESTS_VERIFY_SSL', True)
 API_TOKEN_REFRESH_THRESHOLD_SECONDS = getattr(settings, 'API_TOKEN_REFRESH_THRESHOLD_SECONDS', 5 * 60) # default 5 daqiqa
@@ -331,3 +349,105 @@ def dashboard_view(request):
     }
     return render(request, 'auth_app/dashboard.html', context)
 
+# auth_app/views.py
+
+
+
+
+@method_decorator(custom_login_required_with_token_refresh, name='dispatch')
+class TestListView(ListView):
+    """Talaba uchun mavjud testlar ro'yxati."""
+    model = Test
+    template_name = 'auth_app/test_list.html'
+    context_object_name = 'tests'
+    paginate_by = 10
+
+    def get_queryset(self):
+        student = self.request.current_student
+        now = timezone.now()
+        # API view'dagi logikani takrorlaymiz
+        queryset = Test.objects.filter(
+            Q(status=Test.Status.ACTIVE),
+            Q(start_time__isnull=True) | Q(start_time__lte=now),
+            Q(end_time__isnull=True) | Q(end_time__gte=now)
+        ).filter(
+            Q(faculties__isnull=True) | Q(faculties__id=student.faculty_id_api),
+            Q(specialties__isnull=True) | Q(specialties__id=student.specialty_id_api),
+            Q(groups__isnull=True) | Q(groups__id=student.group_id_api)
+        ).exclude(
+            Q(allow_once=True) & Q(responses__student=student, responses__is_completed=True)
+        ).distinct().order_by('-start_time', '-created_at')
+        return queryset
+
+@method_decorator(custom_login_required_with_token_refresh, name='dispatch')
+class TestDetailView(DetailView):
+    """Test haqida ma'lumot va topshirishga o'tish."""
+    model = Test
+    template_name = 'auth_app/test_detail.html'
+    context_object_name = 'test'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        student = self.request.current_student
+        test = self.get_object()
+        # Talabaning ushbu test bo'yicha yakunlangan urinishi bormi?
+        context['is_already_completed'] = test.allow_once and \
+            SurveyResponse.objects.filter(test=test, student=student, is_completed=True).exists()
+        return context
+
+@custom_login_required_with_token_refresh
+def take_test_view(request, test_id):
+    """
+    Test topshirish sahifasi.
+    Bu funksiya React.js uchun ma'lumotlarni tayyorlab, shablonni render qiladi.
+    """
+    # Testni topish va uning holati "Aktiv" ekanligini tekshirish
+    test = get_object_or_404(Test, pk=test_id, status=Test.Status.ACTIVE)
+    student = request.current_student
+
+    # Barcha ruxsat tekshiruvlari (fakultet, IP manzil va hokazo)
+    now = timezone.now()
+    if not (
+        (test.start_time is None or test.start_time <= now) and
+        (test.end_time is None or test.end_time >= now) and
+        (not test.faculties.exists() or student.faculty_id_api in test.faculties.values_list('id', flat=True)) and
+        (not test.specialties.exists() or student.specialty_id_api in test.specialties.values_list('id', flat=True)) and
+        (not test.groups.exists() or student.group_id_api in test.groups.values_list('id', flat=True))
+    ):
+        messages.error(request, "Sizga bu testni topshirishga ruxsat yo'q.")
+        return redirect('test-list')
+
+    if test.allow_once and SurveyResponse.objects.filter(test=test, student=student, is_completed=True).exists():
+        messages.warning(request, "Siz bu testni allaqachon topshirib bo'lgansiz.")
+        return redirect('test-detail', pk=test.id)
+
+    # Test urinishini (SurveyResponse) yaratish yoki hali tugallanmaganini olish
+    response_obj, created = SurveyResponse.objects.get_or_create(
+        student=student, test=test, is_completed=False
+    )
+    
+    # Bu sahifa asosan React ilovasini ishga tushirish uchun xizmat qiladi.
+    # React esa API orqali kerakli ma'lumotlarni o'zi yuklab oladi.
+    context = {
+        'test_id': test.id,
+        'test_title': test.title,
+        'response_id': response_obj.id,
+        # React uchun kerak bo'ladigan API ma'lumotlari
+        'api_token': request.session.get('api_token'),
+        'api_test_detail_url': reverse('api:api-test-detail', kwargs={'pk': test.id}),
+        'api_test_submit_url': reverse('api:api-test-submit', kwargs={'pk': response_obj.id})
+    }
+    return render(request, 'auth_app/take_test.html', context)
+
+@method_decorator(custom_login_required_with_token_refresh, name='dispatch')
+class TestResultDetailView(DetailView):
+    """Talabaning bitta test natijasini ko'rsatish."""
+    model = SurveyResponse
+    template_name = 'auth_app/test_result_detail.html'
+    context_object_name = 'result'
+
+    def get_queryset(self):
+        # Faqat o'ziga tegishli natijalarni ko'ra olishini ta'minlash
+        return SurveyResponse.objects.filter(student=self.request.current_student)
+    
+# auth_app/views.py
