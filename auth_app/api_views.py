@@ -1,21 +1,38 @@
-from rest_framework import generics, status
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
-from rest_framework_simplejwt.views import TokenObtainPairView
+# auth_app/api_views.py
+
+# --- Django va Rest Framework importlari ---
 from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
+from django.contrib.auth.models import User
+from django.core.cache import cache
+from rest_framework import generics, status, viewsets
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from rest_framework.exceptions import PermissionDenied
+from rest_framework.decorators import action
+from rest_framework_simplejwt.views import TokenObtainPairView
 
-from .models import *
-from .serializers import *
-from .permissions import *
+# --- Mahalliy (Local) importlar ---
+from .models import Test, SurveyResponse, Student, StudentAnswer
+from .serializers import (
+    TestListSerializer, TestTakingDataSerializer, TestResultSerializer, 
+    StudentAnswerSubmitSerializer, AdminTestDetailSerializer, AdminSurveyResponseSerializer
+)
 from .services.hemis_api_service import HemisAPIClient, APIClientException
-from .utils import map_api_data_to_student_model_defaults
+from .utils import *
+
 
 class CustomTokenObtainPairView(TokenObtainPairView):
+    """
+    Standart JWT token olishga qo'shimcha ravishda, HEMIS API'ga login qilib,
+    talaba ma'lumotlarini sinxronlaydigan maxsus view.
+    """
     def post(self, request, *args, **kwargs):
+        # Bu qism hozircha to'liq ishlatilmayapti, lekin kelajakda
+        # to'g'ridan-to'g'ri API orqali token olish uchun kerak bo'lishi mumkin.
         username = request.data.get('username')
         password = request.data.get('password')
 
@@ -31,6 +48,8 @@ class CustomTokenObtainPairView(TokenObtainPairView):
                 student_defaults = map_api_data_to_student_model_defaults(student_info_from_api, username)
                 student, _ = Student.objects.update_or_create(username=username, defaults=student_defaults)
             
+            # Bu yerdan standart simple-jwt token generatsiya qilish logikasi qo'shilishi kerak.
+            # Hozircha bu sozlanmagan.
             return Response({"error": "API token logikasi hali to'liq sozlanmagan."}, status=status.HTTP_501_NOT_IMPLEMENTED)
 
         except APIClientException:
@@ -39,188 +58,100 @@ class CustomTokenObtainPairView(TokenObtainPairView):
             return Response({"error": f"Tizimda kutilmagan xatolik: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-# auth_app/api_views.py
+from .utils import get_client_ip
 
-from rest_framework import generics, status, viewsets
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.exceptions import PermissionDenied
-from rest_framework_simplejwt.views import TokenObtainPairView
-from django.db import transaction
-from django.db.models import Q
-from django.utils import timezone
-from django.shortcuts import get_object_or_404
-from django.core.cache import cache
+# ===================================================================
+# --- TALABALAR UCHUN API ENDPOINT'LARI ---
+# ===================================================================
 
-from .models import *
-from .serializers import *
-from .permissions import *
-from .services.hemis_api_service import HemisAPIClient, APIClientException
-from .utils import map_api_data_to_student_model_defaults
-
-
-
-class TestListView(generics.ListAPIView):
-    """Talabaga ruxsat etilgan aktiv testlar ro'yxatini qaytaradi."""
+class TestListViewAPI(generics.ListAPIView): # NOM O'ZGARTIRILDI
+    """Talabaga ruxsat etilgan va aktiv bo'lgan testlar ro'yxatini qaytaradi (API)."""
     serializer_class = TestListSerializer
-    permission_classes = [IsAuthenticated] # Yoki o'zimizning custom permission
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        student = self.request.user.student # Middleware orqali
-        cache_key = f'student_{student.id}_allowed_tests'
-        cached_queryset = cache.get(cache_key)
-
-        if cached_queryset is not None:
-            return cached_queryset
-
+        student = self.request.user.student
         now = timezone.now()
-        
-        # Talabaning fakulteti, yo'nalishi va guruhiga mos testlarni filtrlash
-        # Agar test uchun ruxsatlar bo'sh bo'lsa, u hammaga ochiq hisoblanadi.
-        queryset = Test.objects.filter(
+        return Test.objects.filter(
             Q(status=Test.Status.ACTIVE),
             Q(start_time__isnull=True) | Q(start_time__lte=now),
             Q(end_time__isnull=True) | Q(end_time__gte=now)
         ).filter(
-            Q(faculties__isnull=True) | Q(faculties__id=student.faculty_id_api),
-            Q(specialties__isnull=True) | Q(specialties__id=student.specialty_id_api),
-            Q(groups__isnull=True) | Q(groups__id=student.group_id_api),
-            # (YANGI)
-            Q(levels__isnull=True) | Q(levels__code=student.level_code)
+            Q(faculties__isnull=True) | Q(faculties=student.faculty_id_api),
+            Q(specialties__isnull=True) | Q(specialties=student.specialty_id_api),
+            Q(groups__isnull=True) | Q(groups=student.group_id_api),
+            Q(levels__isnull=True) | Q(levels=student.level_code)
         ).exclude(
-            Q(allow_once=True) & Q(responses__student=student, responses__is_completed=True)
-        ).distinct().prefetch_related('questions')
-        
-        cache.set(cache_key, list(queryset), timeout=60 * 15) # 15 daqiqaga keshlash
-        return queryset
-
-class TestDetailView(generics.RetrieveAPIView):
-    """
-    Testni boshlash uchun uning to'liq ma'lumotlarini (savollari bilan) qaytaradi.
-    Bu view chaqirilganda talaba uchun test urinishi (SurveyResponse) yaratiladi.
-    """
-    serializer_class = TestDetailSerializer
-    permission_classes = [IsAuthenticated]
-    
-    def get_queryset(self):
-         # TestList'dagi logikani qayta ishlatib, faqat ruxsat etilgan testlarni olamiz
-        student = self.request.user.student
-        return Test.objects.filter(
-            Q(status=Test.Status.ACTIVE) &
-            (Q(faculties__isnull=True) | Q(faculties__id=student.faculty_id_api)) &
-            (Q(specialties__isnull=True) | Q(specialties__id=student.specialty_id_api)) &
-            (Q(groups__isnull=True) | Q(groups__id=student.group_id_api)) &
-            # (YANGI)
-            (Q(levels__isnull=True) | Q(levels__code=student.level_code))
+            allow_once=True, responses__student=student, responses__is_completed=True
         ).distinct()
 
 
-    def get_object(self):
-        obj = super().get_object()
-        student = self.request.user.student
-        
-        # IP manzilni tekshirish
-        if obj.allowed_ips:
-            # X-Forwarded-For kabi headerlarni ham hisobga olish kerak
-            x_forwarded_for = self.request.META.get('HTTP_X_FORWARDED_FOR')
-            if x_forwarded_for:
-                client_ip = x_forwarded_for.split(',')[0]
-            else:
-                client_ip = self.request.META.get('REMOTE_ADDR')
-            
-            if client_ip not in obj.allowed_ips:
-                raise PermissionDenied("Testni faqat ruxsat etilgan IP manzillardan topshirish mumkin.")
-
-        # `allow_once` logikasi: agar yakunlangan urinish bo'lsa, xatolik beradi
-        if obj.allow_once and SurveyResponse.objects.filter(test=obj, student=student, is_completed=True).exists():
-            raise PermissionDenied("Siz bu testni allaqachon topshirib bo'lgansiz.")
-            
-        return obj
+class TestDetailViewAPI(generics.RetrieveAPIView):
+    serializer_class = TestTakingDataSerializer
+    permission_classes = [IsAuthenticated]
+    queryset = Test.objects.filter(status=Test.Status.ACTIVE)
 
     def retrieve(self, request, *args, **kwargs):
         test = self.get_object()
         student = request.user.student
-        
-        # Test urinishini yaratish yoki mavjudini olish
-        response_obj, created = SurveyResponse.objects.get_or_create(
-            student=student, 
-            test=test,
-            is_completed=False # Faqat tugallanmagan urinishni olish
-        )
-        
-        if created and test.time_limit > 0:
-            # `end_time` faqat yangi urinish uchun o'rnatiladi
-            response_obj.end_time = timezone.now() + timezone.timedelta(minutes=test.time_limit)
-            response_obj.save(update_fields=['end_time'])
-            
-        # Agar vaqt tugagan bo'lsa
-        if response_obj.end_time and timezone.now() > response_obj.end_time:
-             if not response_obj.is_completed:
-                 response_obj.is_completed = True
-                 response_obj.calculate_score() # Vaqt tugaguncha berilgan javoblarni hisoblash
-                 response_obj.save()
-             return Response({"detail": "Bu test uchun ajratilgan vaqt tugagan."}, status=status.HTTP_403_FORBIDDEN)
-        
-        serializer = self.get_serializer(test)
-        data = serializer.data
-        data['response_id'] = response_obj.id
-        # Qolgan vaqtni hisoblash
-        time_left = (response_obj.end_time - timezone.now()).total_seconds() if response_obj.end_time else None
-        data['time_left_seconds'] = max(0, time_left) if time_left is not None else None
-        
-        return Response(data)
 
-class TestSubmitView(APIView):
-    """Test javoblarini qabul qilish, baholash va natijani saqlash."""
+        # IP manzil tekshiruvi
+        client_ip = get_client_ip(request)
+        if not is_ip_allowed(client_ip, test.allowed_ips):
+            raise PermissionDenied(
+                f"Ruxsat yo'q: IP manzilingiz ({client_ip}) ruxsat etilgan IP ro'yxatiga mos kelmaydi."
+            )
+
+        # Test vaqtini tekshirish
+        if not test.is_active:
+            raise PermissionDenied(
+                "Bu testga faqat belgilangan vaqtda kirish ruxsat etiladi."
+            )
+
+        # Talabaning fakultet, guruh va yo'nalishiga mosligini tekshirish
+        if test.faculties.exists() and not test.faculties.filter(id=student.faculty_id_api).exists():
+            raise PermissionDenied("Bu test sizning fakultetingiz uchun emas.")
+        if test.groups.exists() and not test.groups.filter(id=student.group_id_api).exists():
+            raise PermissionDenied("Bu test sizning guruhingiz uchun emas.")
+        if test.specialties.exists() and not test.specialties.filter(id=student.specialty_id_api).exists():
+            raise PermissionDenied("Bu test sizning yo'nalishingiz uchun emas.")
+
+        # Aks holda, test ma'lumotini qaytarish
+        serializer = self.get_serializer(test)
+        return Response(serializer.data)
+
+class TestSubmitViewAPI(APIView): # NOM O'ZGARTIRILDI
+    """Test javoblarini qabul qiladi va baholaydi (API)."""
     permission_classes = [IsAuthenticated]
 
     def post(self, request, pk, format=None):
-        student = request.user.student
-        response_obj = get_object_or_404(SurveyResponse, pk=pk, student=student, is_completed=False)
-
+        response_obj = get_object_or_404(SurveyResponse, pk=pk, student=request.user.student, is_completed=False)
         serializer = StudentAnswerSubmitSerializer(data=request.data, many=True)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+        # Определение, является ли это финальной отправкой
+        is_final_submit = request.query_params.get('final_submit', 'false').lower() == 'true'
+
         with transaction.atomic():
-            # Vaqt tugaganini tekshirish
-            if response_obj.end_time and timezone.now() > response_obj.end_time:
+            response_obj.student_answers.all().delete()
+            answers = [StudentAnswer(response=response_obj, **item) for item in serializer.validated_data]
+            StudentAnswer.objects.bulk_create(answers)
+
+            # Отмечаем тест как завершенный только если это финальная отправка
+            if is_final_submit:
                 response_obj.is_completed = True
+                response_obj.end_time = timezone.now()
                 response_obj.calculate_score()
-                response_obj.save()
-                return Response({"detail": "Vaqt tugadi. Javoblaringiz saqlandi."}, status=status.HTTP_403_FORBIDDEN)
 
-            answers_data = serializer.validated_data
-            
-            # Eski javoblarni o'chirish va yangilarini bitta tranzaksiyada qo'shish
-            StudentAnswer.objects.filter(response=response_obj).delete()
+        if is_final_submit:
+            return Response(TestResultSerializer(response_obj).data, status=status.HTTP_200_OK)
+        else:
+            # Если это просто сохранение, возвращаем статус без результатов
+            return Response({"status": "saved", "message": "Ответы сохранены, но тест не завершен"}, status=status.HTTP_200_OK)
 
-            student_answers_to_create = []
-            for item in answers_data:
-                # Javob urinishga tegishli testdagi savolga berilganini tekshirish
-                if item['question_id'].test != response_obj.test:
-                    continue
-                student_answers_to_create.append(
-                    StudentAnswer(
-                        response=response_obj,
-                        question=item['question_id'],
-                        chosen_answer=item['answer_id']
-                    )
-                )
-            
-            StudentAnswer.objects.bulk_create(student_answers_to_create, ignore_conflicts=True)
-
-            response_obj.is_completed = True
-            response_obj.end_time = timezone.now()
-            response_obj.calculate_score() # Yakuniy ballni hisoblash
-            # save() allaqachon calculate_score ichida chaqiriladi
-
-        result_serializer = TestResultSerializer(response_obj)
-        return Response(result_serializer.data, status=status.HTTP_200_OK)
-
-class TestResultListView(generics.ListAPIView):
-    """Talabaning barcha yakunlangan test natijalari (arxiv)."""
+class TestResultListViewAPI(generics.ListAPIView): # NOM O'ZGARTIRILDI
+    """Talabaning barcha yakunlangan test natijalari (arxiv) (API)."""
     serializer_class = TestResultSerializer
     permission_classes = [IsAuthenticated]
 
@@ -231,39 +162,52 @@ class TestResultListView(generics.ListAPIView):
         ).select_related('test').order_by('-end_time')
 
 
-# --- Admin uchun API ViewSet'lar ---
+# ===================================================================
+# --- ADMINLAR UCHUN API ENDPOINT'LARI ---
+# ===================================================================
 
 class AdminTestViewSet(viewsets.ModelViewSet):
     """Admin uchun testlarni boshqarish (CRUD)."""
     queryset = Test.objects.all().order_by('-created_at')
-    serializer_class = TestDetailSerializer # Admin uchun alohida serializator yaratish mumkin
+    serializer_class = AdminTestDetailSerializer
     permission_classes = [IsAdminUser]
 
+
 class AdminResultsViewSet(viewsets.ReadOnlyModelViewSet):
-    """Admin uchun natijalarni filtrlash va ko'rish."""
-    serializer_class = AdminTestResultDetailSerializer
+    """Admin uchun barcha test natijalarini filtrlash va ko'rish."""
+    serializer_class = AdminSurveyResponseSerializer
     permission_classes = [IsAdminUser]
     
     def get_queryset(self):
         queryset = SurveyResponse.objects.filter(is_completed=True).select_related(
             'student', 'test'
         ).prefetch_related(
-            'student_answers__question', 'student_answers__chosen_answer'
-        )
+            'student_answers__question__answers',
+            'student_answers__chosen_answer'
+        ).order_by('-end_time')
         
-        # Kengaytirilgan filtrlash
+        # Kengaytirilgan filtrlash imkoniyatlari
         test_id = self.request.query_params.get('test_id')
         faculty_id = self.request.query_params.get('faculty_id')
-        specialty_id = self.request.query_params.get('specialty_id')
         group_id = self.request.query_params.get('group_id')
         
         if test_id:
             queryset = queryset.filter(test_id=test_id)
         if faculty_id:
             queryset = queryset.filter(student__faculty_id_api=faculty_id)
-        if specialty_id:
-            queryset = queryset.filter(student__specialty_id_api=specialty_id)
         if group_id:
             queryset = queryset.filter(student__group_id_api=group_id)
             
         return queryset
+
+    @action(detail=False, methods=['post'])
+    def auto_complete_expired(self, request):
+        """Vaqti tugagan testlarni avtomatik yakunlash"""
+        from .utils import auto_complete_expired_tests
+
+        completed_count = auto_complete_expired_tests()
+        return Response({
+            'status': 'success',
+            'message': f'Vaqti tugagan {completed_count} ta test natijasi muvaffaqiyatli yakunlandi',
+            'completed_count': completed_count
+        })

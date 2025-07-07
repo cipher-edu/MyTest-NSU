@@ -1,66 +1,87 @@
-{% extends 'base.html' %}
+{% extends 'auth_app/base.html' %}
+{% load static %}
 
-{% block title %}Natija: {{ result.test.title }}{% endblock %}
+{% block title %}{{ result.test.title }} - Natija{% endblock %}
+
+{% block page_title %}Тест натижаси: {{ result.test.title }}{% endblock %}
 
 {% block content %}
-<div class="card mb-4">
-    <div class="card-header bg-primary text-white">
-        <h2 class="card-title h4 mb-0">Test Natijasi: {{ result.test.title }}</h2>
+<div class="container mx-auto py-8 px-4">
+    <div class="mb-6">
+        <a href="{% url 'auth_app:test-result-list' %}" class="inline-flex items-center text-sm font-medium text-indigo-600 hover:text-indigo-500">
+            <svg class="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
+            </svg>
+            Барча натижаларга қайтиш
+        </a>
     </div>
-    <div class="card-body">
-        <div class="row text-center mb-4">
-            <div class="col-md-4">
-                <h5>To'plangan ball</h5>
-                <p class="display-5 text-primary fw-bold">{{ result.score|floatformat:2 }}</p>
-            </div>
-            <div class="col-md-4">
-                <h5>Maksimal ball</h5>
-                <p class="display-5 fw-bold">{{ result.test.max_score|floatformat:2 }}</p>
-            </div>
-            <div class="col-md-4">
-                <h5>Topshirilgan vaqt</h5>
-                <p class="fs-5 mt-3">{{ result.end_time|date:"d.m.Y H:i" }}</p>
-            </div>
-        </div>
-        <hr>
-        <p><strong>Talaba:</strong> {{ result.student }}</p>
-    </div>
-</div>
 
-<div class="card">
-    <div class="card-header">
-        <h3 class="h5 mb-0">Javoblar Tahlili</h3>
-    </div>
-    <div class="list-group list-group-flush">
-        {% for answer in detailed_answers %}
-            <div class="list-group-item">
-                <p class="mb-2"><strong>Savol:</strong> {{ answer.question_text|safe }}</p>
-                
-                {% if answer.is_correct %}
-                    <div class="alert alert-success p-2">
-                        <strong>Sizning javobingiz:</strong> {{ answer.chosen_answer.text }} (To'g'ri)
-                    </div>
-                {% else %}
-                    <div class="alert alert-danger p-2">
-                        <strong>Sizning javobingiz:</strong> 
-                        {% if answer.chosen_answer %}
-                            {{ answer.chosen_answer.text }} (Noto'g'ri)
-                        {% else %}
-                            <span class="text-muted">Javob berilmagan</span>
-                        {% endif %}
-                    </div>
-                    {% if answer.correct_answer %}
-                    <div class="alert alert-info p-2">
-                        <strong>To'g'ri javob:</strong> {{ answer.correct_answer.text }}
-                    </div>
-                    {% endif %}
-                {% endif %}
-            </div>
+    {% if messages %}
+    <div class="mb-6">
+        {% for message in messages %}
+        <div class="p-4 mb-4 text-sm rounded-lg {% if message.tags == 'error' %}bg-red-100 text-red-700{% elif message.tags == 'success' %}bg-green-100 text-green-700{% else %}bg-blue-100 text-blue-700{% endif %}">
+            {{ message }}
+        </div>
         {% endfor %}
     </div>
-</div>
+    {% endif %}
 
-<div class="mt-4">
-    <a href="{% url 'test-list' %}" class="btn btn-secondary">Boshqa testlarga qaytish</a>
+    <div class="animate-fade-in bg-white rounded-2xl shadow-soft border border-slate-100 p-6 mb-8">
+        <h1 class="text-3xl font-bold text-slate-900 mb-2">{{ result.test.title }} - Natija</h1>
+
+        <div class="mb-6 p-4 bg-blue-50 rounded-lg">
+            <div class="flex justify-between items-center">
+                <div>
+                    <p class="text-lg font-medium text-blue-800">Umumiy ball: {{ result.score }} / {{ result.test.max_score }}</p>
+                    <p class="text-sm text-blue-600">Foiz: {{ percentage|floatformat:1 }}%</p>
+                </div>
+                <div>
+                    <p class="text-sm text-blue-600">Topshirilgan sana: {{ result.end_time|date:"d.m.Y H:i" }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="space-y-6">
+            {% for answer in result.student_answers.all %}
+            <div class="p-4 rounded-lg {% if answer.chosen_answer.is_correct %}bg-green-50 border border-green-100{% else %}bg-red-50 border border-red-100{% endif %}">
+                <h3 class="text-lg font-semibold {% if answer.chosen_answer.is_correct %}text-green-800{% else %}text-red-800{% endif %} mb-3">
+                    {{ forloop.counter }}. {{ answer.question.text }}
+                </h3>
+
+                <div class="space-y-2">
+                    {% for option in answer.question.answers.all %}
+                    <div class="flex items-start p-3 rounded-md {% if option.id == answer.chosen_answer.id %}border-2 {% if answer.chosen_answer.is_correct %}border-green-500 bg-green-100{% else %}border-red-500 bg-red-100{% endif %}{% else %}{% if option.is_correct %}border-2 border-green-500 bg-green-100{% else %}bg-white border border-slate-200{% endif %}{% endif %}">
+                        <div class="mt-1 mr-3">
+                            {% if option.id == answer.chosen_answer.id %}
+                                {% if answer.chosen_answer.is_correct %}
+                                    <span class="text-green-600"><i class="fas fa-check-circle"></i></span>
+                                {% else %}
+                                    <span class="text-red-600"><i class="fas fa-times-circle"></i></span>
+                                {% endif %}
+                            {% elif option.is_correct %}
+                                <span class="text-green-600"><i class="fas fa-check-circle"></i></span>
+                            {% endif %}
+                        </div>
+                        <div class="flex-grow">
+                            <p class="{% if option.id == answer.chosen_answer.id %}font-medium{% endif %}">
+                                {{ option.text }}
+                            </p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="mt-8 flex justify-between">
+            <a href="{% url 'auth_app:test-result-list' %}" class="inline-flex items-center px-4 py-2 border border-slate-300 bg-white text-sm font-medium rounded-md text-slate-700 hover:bg-slate-50">
+                <i class="fas fa-arrow-left mr-2"></i> Barcha natijalar
+            </a>
+            <a href="{% url 'auth_app:test-list' %}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700">
+                <i class="fas fa-list mr-2"></i> Testlar ro'yxatiga qaytish
+            </a>
+        </div>
+    </div>
 </div>
 {% endblock %}

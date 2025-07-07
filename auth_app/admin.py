@@ -284,6 +284,11 @@ class TestAdmin(admin.ModelAdmin):
         return super().get_queryset(request).annotate(
             num_questions=models.Count('questions')
         )
+    def formfield_for_dbfield(self, db_field, **kwargs):
+        field = super().formfield_for_dbfield(db_field, **kwargs)
+        if db_field.name == 'allowed_ips':
+            field.help_text += " Masalan: 192.168.1.1, 192.168.1.2"
+        return field
 
     @admin.display(description="Savollar soni", ordering='num_questions')
     def question_count(self, obj):
@@ -329,3 +334,36 @@ class SurveyResponseAdmin(admin.ModelAdmin):
     search_fields = ('student__full_name_api', 'student__username', 'test__title')
     readonly_fields = ('student', 'test', 'start_time', 'end_time', 'score')
     inlines = [StudentAnswerInline]
+    actions = ['mark_responses_as_completed']
+
+    @admin.action(description="Отметить выбранные ответы как завершенные")
+    def mark_responses_as_completed(self, request, queryset):
+        not_completed_count = queryset.filter(is_completed=False).count()
+        updated = queryset.filter(is_completed=False).update(
+            is_completed=True, 
+            end_time=timezone.now()
+        )
+
+        # Пересчитываем баллы для каждого ответа
+        for response in queryset.filter(is_completed=True):
+            response.calculate_score()
+            response.save()
+
+        if updated:
+            self.message_user(
+                request, 
+                f"{updated} ответов на тест успешно отмечены как завершенные и оценены.", 
+                messages.SUCCESS
+            )
+        elif not_completed_count == 0:
+            self.message_user(
+                request, 
+                "Выбранные ответы уже были отмечены как завершенные.", 
+                messages.INFO
+            )
+        else:
+            self.message_user(
+                request, 
+                "Произошла ошибка при обновлении статуса ответов.", 
+                messages.ERROR
+            )

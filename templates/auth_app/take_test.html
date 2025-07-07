@@ -1,80 +1,231 @@
-
+{% extends 'auth_app/base.html' %}
 {% load static %}
 
-{% block page_title %}Test jarayoni: {{ test_title }}{% endblock %}
+{% block title %}{{ test.title }} - Test{% endblock %}
+{% block page_title %}Test jarayoni: {{ test.title }}{% endblock %}
 
 {% block content %}
-{# Asosiy konteyner. Barcha o'zgarishlar shu yerda sodir bo'ladi #}
-<div id="test-app-container" class="max-w-4xl mx-auto">
+<form method="post" action="{% url 'auth_app:submit-test' response.id %}" id="test-form">
+    {% csrf_token %}
 
-    {# 1. Test nomi va taymer uchun joy #}
-    <div id="test-header" class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-md p-4 mb-6 sticky top-20 z-30" style="display: none;">
+    {# Test nomi va taymer #}
+    <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-md p-4 mb-6 sticky top-20 z-30">
         <div class="flex justify-between items-center">
-            <h1 id="test-title-display" class="text-xl md:text-2xl font-bold text-slate-800 truncate"></h1>
+            <h1 class="text-xl md:text-2xl font-bold text-slate-800 truncate">{{ test.title }}</h1>
             <div id="timer" class="text-xl md:text-2xl font-bold text-white bg-red-600 rounded-lg px-4 py-2 tabular-nums">--:--</div>
         </div>
     </div>
 
-    {# 2. Savollar chiqadigan joy #}
-    <div id="questions-container" class="space-y-5">
-        {# Boshlang'ich yuklanish holati #}
-        <div id="loading-spinner" class="bg-white rounded-2xl p-8 text-center flex flex-col items-center justify-center min-h-[300px]">
-            <div class="w-12 h-12 border-4 border-slate-200 border-t-primary-600 rounded-full animate-spin"></div>
-            <h4 class="mt-4 text-lg font-semibold text-slate-700">Test ma'lumotlari yuklanmoqda...</h4>
-            <p class="text-slate-500">Iltimos, kuting.</p>
+    <div class="animate-fade-in bg-white rounded-2xl shadow-soft border border-slate-100 p-6 mb-8">
+    <h1 class="text-3xl font-bold text-slate-900 mb-2">{{ test.title }}</h1>
+    <div class="flex justify-between items-start mb-6">
+        <div>
+            <p class="text-slate-600">{{ test.description }}</p>
+            <p class="text-sm text-slate-500 mt-2">Maksimal ball: {{ test.max_score }}</p>
         </div>
+        {% if time_left_seconds %}
+        <div class="bg-blue-50 rounded-md p-3 text-center">
+            <span class="text-sm text-blue-600 font-medium">Qolgan vaqt:</span>
+            <div id="timer" class="text-xl font-bold text-blue-700" data-seconds-left="{{ time_left_seconds }}">--:--</div>
+        </div>
+        {% endif %}
     </div>
 
-    {# 3. Yakunlash tugmasi #}
-    <button id="submit-btn" class="w-full mt-8 px-6 py-4 bg-green-600 rounded-xl font-bold text-lg text-white hover:bg-green-700 transition-all duration-300 shadow-lg hover:shadow-xl disabled:bg-slate-300 disabled:cursor-not-allowed disabled:shadow-none" style="display: none;">
-        Testni Yakunlash
-    </button>
-    
-    {# 4. Natija ko'rsatiladigan joy #}
-    <div id="result-container" class="hidden"></div>
+    <div class="space-y-8">
+            {% for question in questions %}
+            <div class="p-4 bg-slate-50 rounded-lg question-container" id="question-{{ question.id }}">
+                <h3 class="text-lg font-semibold text-slate-800 mb-3">{{ forloop.counter }}. {{ question.text }}</h3>
+                <div class="space-y-2">
+                    {% for answer in question.answers.all %}
+                    <div class="flex items-start p-3 {% if forloop.first %}bg-white{% else %}hover:bg-white{% endif %} rounded-md cursor-pointer transition-all answer-option" 
+                         onclick="selectAnswer(this, {{ question.id }}, {{ answer.id }})">
+                        <input type="radio" name="question_{{ question.id }}" id="answer_{{ answer.id }}" value="{{ answer.id }}" class="mt-1 mr-3" required>
+                        <label for="answer_{{ answer.id }}" class="cursor-pointer flex-grow">
+                            {{ answer.text }}
+                        </label>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
 
+        <div class="mt-8 flex justify-between">
+            <a href="{% url 'auth_app:test-detail' test.id %}" class="inline-flex items-center px-4 py-2 border border-slate-300 bg-white text-sm font-medium rounded-md text-slate-700 hover:bg-slate-50">
+                Testni bekor qilish
+            </a>
+            <button type="submit" id="submit-btn" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                Javoblarni topshirish
+            </button>
+        </div>
+    </form>
 </div>
+
+<script>
+    // Timer funksiyasi
+    function startTimer(durationInSeconds, display) {
+        let timer = durationInSeconds;
+        let minutes, seconds;
+
+        let interval = setInterval(function () {
+            minutes = parseInt(timer / 60, 10);
+            seconds = parseInt(timer % 60, 10);
+
+            minutes = minutes < 10 ? "0" + minutes : minutes;
+            seconds = seconds < 10 ? "0" + seconds : seconds;
+
+            display.textContent = minutes + ":" + seconds;
+
+            if (--timer < 0) {
+                clearInterval(interval);
+                // При истечении времени добавляем параметр для автоматического сохранения, но не завершения теста
+                const form = document.getElementById('test-form');
+                // Создаем скрытый input для сохранения ответов
+                const saveInput = document.createElement('input');
+                saveInput.type = 'hidden';
+                saveInput.name = 'save_answers';
+                saveInput.value = 'true';
+                form.appendChild(saveInput);
+                form.submit();
+                alert("Vaqt tugadi! Javoblaringiz avtomatik ravishda saqlanmoqda, lekin test yakunlanmadi.");
+            }
+        }, 1000);
+    }
+
+    // Javob tanlash funksiyasi
+    function selectAnswer(element, questionId, answerId) {
+        // Javob variantlari konteyneridan barcha answer-option elementlarni topish
+        const parentContainer = element.closest('.question-container');
+        const allOptions = parentContainer.querySelectorAll('.answer-option');
+
+        // Barcha javob variantlaridan tanlanganlik klassini olib tashlash
+        allOptions.forEach(option => {
+            option.classList.remove('bg-white');
+            option.classList.add('hover:bg-white');
+        });
+
+        // Tanlangan javob variantiga tanlanganlik klassini qo'shish
+        element.classList.add('bg-white');
+        element.classList.remove('hover:bg-white');
+
+        // Radio tugmasini belgilash
+        const radioInput = element.querySelector('input[type="radio"]');
+        radioInput.checked = true;
+    }
+
+    // Timer ishga tushirish
+    document.addEventListener('DOMContentLoaded', function() {
+        const timerElement = document.getElementById('timer');
+        if(timerElement) {
+            const secondsLeft = parseInt(timerElement.getAttribute('data-seconds-left'), 10);
+            if(secondsLeft > 0) {
+                startTimer(secondsLeft, timerElement);
+            }
+        }
+    });
+</script>
 {% endblock %}
+    </div>
+
+            {% for question in questions %}
+            <div class="p-4 bg-slate-50 rounded-lg question-container" id="question-{{ question.id }}">
+                <h3 class="text-lg font-semibold text-slate-800 mb-3">{{ forloop.counter }}. {{ question.text }}</h3>
+                <div class="space-y-2">
+                    {% for answer in question.answers.all %}
+                    <div class="flex items-start p-3 {% if forloop.first %}bg-white{% else %}hover:bg-white{% endif %} rounded-md cursor-pointer transition-all answer-option" 
+                         onclick="selectAnswer(this, {{ question.id }}, {{ answer.id }})">
+                        <input type="radio" name="question_{{ question.id }}" id="answer_{{ answer.id }}" value="{{ answer.id }}" class="mt-1 mr-3" required>
+                        <label for="answer_{{ answer.id }}" class="cursor-pointer flex-grow">
+                            {{ answer.text }}
+                        </label>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="mt-8 flex justify-between">
+            <a href="{% url 'auth_app:test-detail' test.id %}" class="inline-flex items-center px-4 py-2 border border-slate-300 bg-white text-sm font-medium rounded-md text-slate-700 hover:bg-slate-50">
+                Testni bekor qilish
+            </a>
+            <div class="space-x-3">
+                <button type="submit" name="save_answers" class="inline-flex items-center px-4 py-2 border border-slate-300 bg-white text-sm font-medium rounded-md text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500">
+                    <i class="fas fa-save mr-2"></i> Javoblarni saqlash
+                </button>
+                <button type="submit" name="submit_final" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    <i class="fas fa-check mr-2"></i> Testni yakunlash
+                </button>
+            </div>
+        </div>
+</div>
+
+<script>
+    // Timer funksiyasi
+    function startTimer(durationInSeconds, display) {
+        let timer = durationInSeconds;
+        let minutes, seconds;
+
+        let interval = setInterval(function () {
+            minutes = parseInt(timer / 60, 10);
+            seconds = parseInt(timer % 60, 10);
+
+            minutes = minutes < 10 ? "0" + minutes : minutes;
+            seconds = seconds < 10 ? "0" + seconds : seconds;
+
+            display.textContent = minutes + ":" + seconds;
+
+            if (--timer < 0) {
+                clearInterval(interval);
+                document.getElementById('test-form').submit();
+                alert("Vaqt tugadi! Javoblaringiz avtomatik ravishda yuborilmoqda.");
+            }
+        }, 1000);
+    }
+
+    // Javob tanlash funksiyasi
+    function selectAnswer(element, questionId, answerId) {
+        // Javob variantlari konteyneridan barcha answer-option elementlarni topish
+        const parentContainer = element.closest('.question-container');
+        const allOptions = parentContainer.querySelectorAll('.answer-option');
+
+        // Barcha javob variantlaridan tanlanganlik klassini olib tashlash
+        allOptions.forEach(option => {
+            option.classList.remove('bg-white');
+            option.classList.add('hover:bg-white');
+        });
+
+        // Tanlangan javob variantiga tanlanganlik klassini qo'shish
+        element.classList.add('bg-white');
+        element.classList.remove('hover:bg-white');
+
+        // Radio tugmasini belgilash
+        const radioInput = element.querySelector('input[type="radio"]');
+        radioInput.checked = true;
+    }
+
+    // Timer ishga tushirish
+    document.addEventListener('DOMContentLoaded', function() {
+        const timerElement = document.getElementById('timer');
+        if(timerElement) {
+            const secondsLeft = parseInt(timerElement.getAttribute('data-seconds-left'), 10);
+            if(secondsLeft > 0) {
+                startTimer(secondsLeft, timerElement);
+            }
+        }
+    });
+</script>
 
 
 {% block extra_js %}
-{# --- Django ma'lumotlarini JavaScript uchun xavfsiz saqlash --- #}
-{{ test_id|json_script:"test-id" }}
-{{ response_id|json_script:"response-id" }}
-{{ api_token|json_script:"api-token" }}
-{{ api_test_detail_url|json_script:"api-test-detail-url" }}
-{{ api_test_submit_url|json_script:"api-test-submit-url" }}
-<script type="application/json" id="result-page-url-base">"/results/"</script>
-<script type="application/json" id="csrf-token">{{ csrf_token }}</script>
-
-
-{# --- SOF JAVASCRIPT KODI --- #}
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-
-    // ----- GLOBAL O'ZGARUVCHILAR VA DOM ELEMENTLARI -----
-    let selectedAnswers = {};
-    let testData = null;
-    let timerIntervalId = null;
-
-    const testContainer = document.getElementById('test-app-container');
-    const headerContainer = document.getElementById('test-header');
-    const titleDisplay = document.getElementById('test-title-display');
     const timerDisplay = document.getElementById('timer');
-    const questionsContainer = document.getElementById('questions-container');
+    const testForm = document.getElementById('test-form');
     const submitBtn = document.getElementById('submit-btn');
-    const resultContainer = document.getElementById('result-container');
-    const loadingSpinner = document.getElementById('loading-spinner');
-
-    // --- XATOLIK TUZATILDI: Django'dan ma'lumotlarni o'qib olish ---
-    const apiToken = JSON.parse(document.getElementById('api-token').textContent);
-    const testDetailUrl = JSON.parse(document.getElementById('api-test-detail-url').textContent);
-    const testSubmitUrl = JSON.parse(document.getElementById('api-test-submit-url').textContent);
-    const resultPageUrlBase = JSON.parse(document.getElementById('result-page-url-base').textContent);
-    const csrfToken = JSON.parse(document.getElementById('csrf-token').textContent);
-
     
-    // ----- ASOSIY FUNKSIYALAR -----
+    // Django'dan kelgan vaqtni olish
+    let timeLeft = {{ time_left_seconds|default:"null" }};
 
     function formatTime(seconds) {
         if (seconds === null || isNaN(seconds)) return '∞';
@@ -83,158 +234,35 @@ document.addEventListener('DOMContentLoaded', () => {
         return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
     }
 
-    function startTimer(seconds) {
-        if (seconds === null) {
+    function startTimer() {
+        if (timeLeft === null) {
             timerDisplay.textContent = '∞';
             return;
         }
-        let timeLeft = seconds;
+
         timerDisplay.textContent = formatTime(timeLeft);
-        timerIntervalId = setInterval(() => {
+
+        const timerInterval = setInterval(() => {
             timeLeft--;
             timerDisplay.textContent = formatTime(timeLeft);
             if (timeLeft <= 0) {
-                clearInterval(timerIntervalId);
-                submitTest();
+                clearInterval(timerInterval);
+                submitBtn.disabled = true;
+                submitBtn.textContent = "Vaqt tugadi, yuborilmoqda...";
+                testForm.submit(); // Vaqt tugasa, formani avtomatik yuborish
             }
         }, 1000);
+
+        // Form yuborilayotganda taymerni to'xtatish
+        testForm.addEventListener('submit', () => {
+            clearInterval(timerInterval);
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `<span class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin inline-block mr-2"></span> Yuborilmoqda...`;
+        });
     }
 
-    function renderTest(data) {
-        testData = data;
-        titleDisplay.textContent = data.title;
-        headerContainer.style.display = 'flex'; // 'block' o'rniga 'flex'
-
-        const questionsHtml = data.questions.map((question, index) => `
-            <div class="bg-white rounded-2xl shadow-md overflow-hidden animate-fade-in" style="animation-delay: ${index * 100}ms">
-                <div class="p-5 border-b border-slate-100">
-                    <p class="font-semibold text-slate-800">
-                        <span class="text-primary-600">${index + 1}-Savol.</span> ${question.text}
-                    </p>
-                </div>
-                <div class="divide-y divide-slate-100">
-                    ${question.answers.map(answer => `
-                        <label class="flex items-center p-5 cursor-pointer hover:bg-slate-50 transition-colors has-[:checked]:bg-primary-50 has-[:checked]:text-primary-700">
-                            <input
-                                type="radio"
-                                name="question-${question.id}"
-                                class="h-5 w-5 border-slate-300 focus:ring-primary-500 text-primary-600 form-radio"
-                                data-question-id="${question.id}"
-                                data-answer-id="${answer.id}"
-                            />
-                            <span class="ml-4 text-slate-700">${answer.text}</span>
-                        </label>
-                    `).join('')}
-                </div>
-            </div>
-        `).join('');
-
-        questionsContainer.innerHTML = questionsHtml;
-        submitBtn.style.display = 'block';
-    }
-
-    function renderResult(resultData) {
-        clearInterval(timerIntervalId);
-        
-        const resultUrl = `${resultPageUrlBase}${resultData.id}/`;
-        const resultHtml = `
-            <div class="bg-white rounded-2xl shadow-lg p-8 text-center animate-fade-in">
-                <div class="w-20 h-20 mx-auto bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-4">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                </div>
-                <h2 class="text-3xl font-bold text-slate-800">Test Yakunlandi!</h2>
-                <p class="text-slate-500 mt-2">Sizning natijangiz muvaffaqiyatli saqlandi.</p>
-                <div class="my-6">
-                    <span class="text-6xl font-bold text-primary-600">${resultData.score}</span>
-                    <span class="text-2xl text-slate-500"> / ${resultData.max_score} ball</span>
-                </div>
-                <a href="${resultUrl}" 
-                   class="inline-block px-8 py-3 bg-primary-600 rounded-xl font-semibold text-white hover:bg-primary-700 transition-colors shadow-lg hover:shadow-primary-300">
-                   Batafsil tahlilni ko'rish
-                </a>
-            </div>
-        `;
-        testContainer.innerHTML = resultHtml;
-    }
-    
-    async function submitTest() {
-        if (submitBtn.disabled) return;
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = `
-            <span class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin inline-block mr-2"></span>
-            Yuborilmoqda...
-        `;
-        clearInterval(timerIntervalId);
-
-        const answersPayload = Object.keys(selectedAnswers).map(questionId => ({
-            question_id: parseInt(questionId, 10),
-            answer_id: selectedAnswers[questionId],
-        }));
-
-        try {
-            const response = await fetch(testSubmitUrl, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${apiToken}`,
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': csrfToken
-                },
-                body: JSON.stringify(answersPayload),
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.detail || `Server xatosi: ${response.status}`);
-            }
-
-            const result = await response.json();
-            renderResult(result);
-
-        } catch (err) {
-            questionsContainer.innerHTML = `<div class="bg-red-100 text-red-700 p-4 rounded-lg">${err.message}</div>`;
-            submitBtn.disabled = false;
-            submitBtn.textContent = "Qaytadan urinib ko'rish";
-        }
-    }
-
-    // ----- EVENT LISTENERS -----
-    
-    questionsContainer.addEventListener('change', (event) => {
-        if (event.target.type === 'radio') {
-            const questionId = event.target.dataset.questionId;
-            const answerId = parseInt(event.target.dataset.answerId, 10);
-            selectedAnswers[questionId] = answerId;
-        }
-    });
-
-    submitBtn.addEventListener('click', submitTest);
-
-    // ----- ILOVANI ISHGA TUSHIRISH -----
-    
-    fetch(testDetailUrl, {
-        headers: {
-            'Authorization': `Bearer ${apiToken}`,
-            'Content-Type': 'application/json',
-        },
-    })
-    .then(response => {
-        if (!response.ok) {
-            return response.json().then(err => { throw new Error(err.detail || `Server xatosi: ${response.status}`) });
-        }
-        return response.json();
-    })
-    .then(data => {
-        loadingSpinner.style.display = 'none';
-        renderTest(data);
-        startTimer(data.time_left_seconds);
-    })
-    .catch(err => {
-        loadingSpinner.style.display = 'none';
-        questionsContainer.innerHTML = `<div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-lg" role="alert"><p class="font-bold">Xatolik</p><p>${err.message}</p></div>`;
-    });
-
+    // Taymerni ishga tushirish
+    startTimer();
 });
 </script>
 {% endblock %}

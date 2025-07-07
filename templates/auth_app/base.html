@@ -305,7 +305,7 @@
 <body class="flex flex-col min-h-screen pt-16 sm:pt-20">
 
     <!-- Header/Navigation -->
-    <header x-data="{ mobileMenuOpen: false, userMenuOpen: false, isScrolled: false }" 
+   <header x-data="{ mobileMenuOpen: false, userMenuOpen: false, isScrolled: false }" 
             @scroll.window="isScrolled = (window.pageYOffset > 10)"
             class="navbar-sticky"
             :class="{ 'navbar-scrolled': isScrolled }">
@@ -313,28 +313,31 @@
             <div class="flex items-center justify-between h-16 sm:h-20">
                 <!-- Logo -->
                 <div class="flex items-center">
-                    <a href="{% url 'home' %}" class="flex items-center group">
+                    {# --- XATO TUZATILDI --- #}
+                    <a href="{% url 'auth_app:home' %}" class="flex items-center group">
                         <ion-icon name="logo-electron" class="text-3xl sm:text-4xl mr-2 text-primary-600 group-hover:text-primary-500 transition-colors"></ion-icon>
                         <span class="text-2xl sm:text-3xl font-bold font-serif text-slate-900">NSU MyTest </span>
                     </a>
                 </div>
                 <!-- Desktop Navigation -->
                 <div class="hidden md:flex items-center space-x-1">
-                    <a href="{% url 'home' %}" class="nav-link-desktop {% if request.resolver_match.url_name == 'home' %}nav-link-active{% endif %}">
-                        <ion-icon name="home-outline" class="text-xl"></ion-icon>
-                        <span class="ml-1.5">Bosh sahifa</span>
-                    </a>
+                    {# --- XATO TUZATILDI --- #}
+                    <!-- Desktop Navigation -->
+                    <a href="{% url 'auth_app:home' %}" ...>Bosh sahifa</a>
                     {% if request.session.api_token and request.session.student_db_id %}
-                    <a href="{% url 'dashboard' %}" class="nav-link-desktop {% if request.resolver_match.url_name == 'dashboard' %}nav-link-active{% endif %}">
-                        <ion-icon name="person-outline" class="text-xl"></ion-icon>
-                        <span class="ml-1.5">Profilim</span>
-                    </a>
-                    <a href="" class="nav-link-desktop {% if request.resolver_match.url_name == 'test_list' %}nav-link-active{% endif %}">
-                        <ion-icon name="list-outline" class="text-xl"></ion-icon>
-                        <span class="ml-1.5">Testlar</span>
-                    </a>
+                        <a href="{% url 'auth_app:dashboard' %}" ...>Profilim</a>
+                        <a href="{% url 'auth_app:test-list' %}" ...>Testlar</a>
+                        <a href="{% url 'auth_app:test-result-list' %}" ...>Natijalarim</a> {# Bu yangi qo'shilishi mumkin #}
                     {% endif %}
-                    
+
+                    <!-- User Dropdown -->
+                    <a href="{% url 'auth_app:dashboard' %}" ...>Boshqaruv paneli</a>
+                    <a href="{% url 'auth_app:logout' %}" ...>Chiqish</a>
+
+                    <!-- Fallback -->
+                    <a href="{% url 'auth_app:login' %}" ...>Kirish</a>
+                 
+                 
                 </div>
                 
                 <!-- User Menu -->
@@ -367,19 +370,22 @@
                                             {{ request.session.username_display|default:"Foydalanuvchi" }}
                                         </p>
                                     </div>
-                                    <a href="{% url 'dashboard' %}" class="user-menu-item">
+                                    {# --- XATO TUZATILDI --- #}
+                                    <a href="{% url 'auth_app:dashboard' %}" class="user-menu-item">
                                         <ion-icon name="speedometer-outline" class="mr-2.5"></ion-icon>
                                         Boshqaruv paneli
                                     </a>
                                     
-                                    <a href="{% url 'logout' %}" class="user-menu-item text-red-600 hover:bg-red-50 hover:text-red-700">
+                                    {# --- XATO TUZATILDI --- #}
+                                    <a href="{% url 'auth_app:logout' %}" class="user-menu-item text-red-600 hover:bg-red-50 hover:text-red-700">
                                         <ion-icon name="log-out-outline" class="mr-2.5"></ion-icon>
                                         Chiqish
                                     </a>
                                 </div>
                             </div>
                         {% else %}
-                            <a href="{% url 'login' %}" class="px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
+                            {# --- XATO TUZATILDI --- #}
+                            <a href="{% url 'auth_app:login' %}" class="px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
                                 Kirish
                             </a>
                         {% endif %}
@@ -406,7 +412,8 @@
              x-transition:leave-start="opacity-100 scale-y-100"
              x-transition:leave-end="opacity-0 scale-y-90">
             <div class="pt-2 pb-3 space-y-1 px-2 sm:px-3">
-                <a href="{% url 'home' %}" class="nav-link-mobile {% if request.resolver_match.url_name == 'home' %}nav-link-mobile-active{% endif %}">
+                {# --- XATO TUZATILDI --- #}
+                <a href="{% url 'auth_app:home' %}" class="nav-link-mobile {% if request.resolver_match.url_name == 'home' %}nav-link-mobile-active{% endif %}">
                     Bosh sahifa
                 </a>
                 
@@ -429,18 +436,21 @@
                         </div>
                     </div>
                     <div class="mt-3 space-y-1 px-2">
-                        <a href="{% url 'dashboard' %}" class="nav-link-mobile">
+                        {# --- XATO TUZATILDI --- #}
+                        <a href="{% url 'auth_app:dashboard' %}" class="nav-link-mobile">
                             Boshqaruv paneli
                         </a>
                         
-                        <a href="{% url 'logout' %}" class="block rounded-lg px-3 py-2 text-base font-medium text-red-600 hover:bg-red-100 hover:text-red-700">
+                        {# --- XATO TUZATILDI --- #}
+                        <a href="{% url 'auth_app:logout' %}" class="block rounded-lg px-3 py-2 text-base font-medium text-red-600 hover:bg-red-100 hover:text-red-700">
                             Chiqish
                         </a>
                     </div>
                 </div>
             {% else %}
                 <div class="py-3 px-2 sm:px-3 border-t border-slate-200">
-                    <a href="{% url 'login' %}" class="block w-full text-center px-4 py-2.5 rounded-lg text-base font-semibold text-white bg-primary-600 hover:bg-primary-700 transition-colors">
+                    {# --- XATO TUZATILDI --- #}
+                    <a href="{% url 'auth_app:login' %}" class="block w-full text-center px-4 py-2.5 rounded-lg text-base font-semibold text-white bg-primary-600 hover:bg-primary-700 transition-colors">
                         Kirish
                     </a>
                 </div>

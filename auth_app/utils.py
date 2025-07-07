@@ -1,5 +1,7 @@
-from django.utils import timezone
+import ipaddress
 import logging
+from django.utils import timezone
+from .models import *
 logger = logging.getLogger(__name__)
 def get_nested(data, keys, default=None):
     current = data
@@ -83,7 +85,7 @@ def update_student_instance_with_defaults(student_instance, defaults):
             setattr(student_instance, key, value)
             has_changed = True
     if has_changed:
-        student_instance.save() 
+        student_instance.save()
         logger.info(f"Student instance {student_instance.username} (ID: {student_instance.id}) updated with new API data.")
     else:
         if defaults.get('last_login_api') and student_instance.last_login_api != defaults.get('last_login_api'):
@@ -143,7 +145,77 @@ def generate_qr_code_image(data, prefix=""):
 
 
 # auth_app/utils.py
+def get_client_ip(request):
+    """Mijozning haqiqiy IP manzilini oladi (proksi-serverlarni hisobga olgan holda)."""
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0].strip()
+    else:
+        ip = request.META.get('REMOTE_ADDR')
 
+    # Local test uchun
+    if ip in ['127.0.0.1', 'localhost', '::1']:
+        return '127.0.0.1'
+
+    # Lokal Docker muhitidagi IP (manzil Docker tarmog'i bilan bog'liq)
+    if ip.startswith('172.') or ip.startswith('192.168.'):
+        logger.info(f"Docker muhitida ishlayotgan bo'lishi mumkin: {ip}")
+        # Lokal test uchun ruxsat berish
+        return '127.0.0.1'
+
+    return ip
+
+def is_ip_allowed(client_ip_str, allowed_ips_string):
+    """
+    Mijozning IP manzilini ruxsat etilgan IP manzillar ro'yxati bo'yicha tekshiradi.
+    """
+    if not allowed_ips_string:
+        return True  # Agar ruxsat etilgan IP manzillar ko'rsatilmasa, cheklov yo'q
+
+    allowed_ips = [ip.strip() for ip in allowed_ips_string.split(',') if ip.strip()]
+
+    if client_ip_str in allowed_ips:
+        return True
+
+    logger.warning(f"IP manzil ({client_ip_str}) ruxsat etilgan ro'yxatda topilmadi.")
+    return False
+
+
+def auto_complete_expired_tests():
+    """
+    Test vaqti tugagan va yakunlanmagan testlarni avtomatik yakunlash.
+    Bu funktsiya administrator API tomonidan chaqiriladi.
+    """
+    from .models import SurveyResponse, Test
+
+    now = timezone.now()
+    # Vaqti tugagan testlarni topish
+    expired_tests = Test.objects.filter(
+        end_time__lt=now,
+        status=Test.Status.ACTIVE
+    )
+
+    completed_count = 0
+    # Har bir test uchun yakunlanmagan javoblarni yakunlash
+    for test in expired_tests:
+        responses = SurveyResponse.objects.filter(
+            test=test,
+            is_completed=False
+        )
+
+        for response in responses:
+            response.is_completed = True
+            response.end_time = min(now, test.end_time)  # Test yakunlangan vaqt yoki hozirgi vaqt
+            response.calculate_score()
+            completed_count += 1
+
+        # Testni COMPLETED statusiga o'tkazish
+        if test.end_time < now:
+            test.status = Test.Status.COMPLETED
+            test.save(update_fields=['status', 'updated_at'])
+
+    logger.info(f"Auto-completed {completed_count} test responses for expired tests")
+    return completed_count
 # ... mavjud importlar va funksiyalar ...
 from .models import Faculty, Specialty, Group, Level, Student
 

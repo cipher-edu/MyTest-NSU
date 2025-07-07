@@ -96,7 +96,7 @@
                         <li><ion-icon name="checkmark-circle" class="text-emerald-300 mr-2"></ion-icon> Onlayn natijalar va tezkor xabarlar</li>
                     </ul>
                     <div class="flex flex-col sm:flex-row gap-4">
-                        <a href="{% url 'login' %}" class="btn-primary inline-flex items-center justify-center">
+                        <a href="{% url 'auth_app:login' %}" class="btn-primary inline-flex items-center justify-center">
                             <i class="fas fa-sign-in-alt mr-2"></i> Tizimga kirish
                         </a>
                         <a href="#features" class="px-6 py-3 bg-white/10 hover:bg-white/20 text-white font-medium rounded-lg transition-all inline-flex items-center justify-center border border-white/20">
@@ -254,7 +254,7 @@
             <h2 class="text-3xl font-bold mb-4">HEMIS Tizimiga Kirish</h2>
             <p class="text-xl mb-8 max-w-3xl mx-auto">Talabalar, o'qituvchilar va administratsiya uchun barcha kerakli resurslar bir joyda</p>
             <div class="flex flex-col sm:flex-row justify-center gap-4">
-                <a href="{% url 'login' %}" class="btn-primary inline-flex items-center justify-center">
+                <a href="{% url 'auth_app:login' %}" class="btn-primary inline-flex items-center justify-center">
                     <i class="fas fa-sign-in-alt mr-2"></i> Tizimga kirish
                 </a>
                 <a href="#" class="px-6 py-3 bg-white/10 hover:bg-white/20 text-white font-medium rounded-lg transition-all inline-flex items-center justify-center border border-white/20">

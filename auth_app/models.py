@@ -250,11 +250,13 @@ class Test(models.Model):
         db_index=True,
         verbose_name="Test holati"
     )
-    allowed_ips = models.JSONField(
-        default=list, blank=True,
+    allowed_ips = models.CharField(
+        max_length=500,
+        blank=True,
         verbose_name="Ruxsat etilgan IP manzillar",
-        help_text="Testni faqat shu IP manzillardan topshirish mumkin. Bo'sh qoldirilsa - cheklov yo'q."
+        help_text="Testni faqat shu IP manzillardan topshirish mumkin. IP manzillarni vergul bilan ajrating. Bo'sh qoldirilsa - cheklov yo'q."
     )
+
     faculties = models.ManyToManyField(
         Faculty, blank=True,
         verbose_name="Ruxsat etilgan fakultetlar",
@@ -302,16 +304,17 @@ class Test(models.Model):
     def max_score(self):
         """Barcha savollar ballari yig'indisini hisoblaydi."""
         return self.questions.aggregate(total=Sum('points'))['total'] or 0
-    
+
     @property
     def is_active(self):
-        """Test ayni damda topshirish uchun aktiv yoki yo'qligini tekshiradi."""
+        """Test ayni damda faol yoki yo'qligini tekshiradi."""
         now = timezone.now()
-        start_ok = self.start_time is None or self.start_time <= now
-        end_ok = self.end_time is None or self.end_time >= now
-        return self.status == self.Status.ACTIVE and start_ok and end_ok
+        is_within_time = (self.start_time is None or self.start_time <= now) and \
+                         (self.end_time is None or self.end_time >= now)
+        return self.status == self.Status.ACTIVE and is_within_time
 
-    class Meta:
+
+class Meta:
         verbose_name = "Test"
         verbose_name_plural = "Testlar"
         ordering = ['-created_at']

@@ -109,9 +109,11 @@ HEMIS_SYSTEM_API_TOKEN = env('HEMIS_SYSTEM_API_TOKEN', default=None)
 EXTERNAL_API_LOGOUT_ENDPOINT = env('EXTERNAL_API_LOGOUT_ENDPOINT', default=None) 
 
 WSGI_APPLICATION = 'external_auth_project.wsgi.application'
+# settings.py
 
-LOGIN_URL = 'login'  
-LOGIN_REDIRECT_URL = 'home'  
+LOGIN_URL = 'auth_app:login'  
+LOGIN_REDIRECT_URL = 'auth_app:dashboard' # Odatda 'home' yoki 'dashboard' bo'ladi
+LOGOUT_REDIRECT_URL = 'auth_app:login' # Chiqishdan keyin qayerga yo'naltirish
 
 DATABASES = {
     'default': {
@@ -174,6 +176,7 @@ USE_I18N = True
 
 USE_TZ = True
 
+TEST_IP_CHECK_ENABLED = True
 
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'

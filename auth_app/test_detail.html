@@ -1,0 +1,17 @@
+{% if is_already_completed %}
+                {# 1-holat: Talaba testni allaqachon yechib bo'lgan #}
+                <div class="text-center">
+                    <div class="bg-green-50 border-l-4 border-green-500 text-green-800 p-4 rounded-r-lg mb-4">
+                        <div class="flex">
+                            <div class="py-1"><ion-icon name="checkmark-done-circle-outline" class="text-2xl text-green-500 mr-3"></ion-icon></div>
+                            <div>
+                                <h4 class="font-bold">Test Yakunlangan</h4>
+                                <p class="text-sm">Siz bu testni allaqachon topshirib bo'lgansiz.</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% if result %}
+                        <a href="{% url 'auth_app:test-result-detail' result.pk %}" class="mt-4 inline-block btn-secondary">Natijani ko'rish</a>
+                        <a href="{% url 'auth_app:test-result-list' %}" class="mt-4 ml-2 inline-block btn-outline">Barcha natijalar</a>
+                    {% endif %}
+                </div>

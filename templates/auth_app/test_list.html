@@ -12,7 +12,7 @@
     {% if tests %}
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {% for test in tests %}
-                <a href="{% url 'test-detail' test.pk %}" class="survey-card block card-reveal card-reveal-delay-{{ forloop.counter0|add:1 }}">
+                <a href="{% url 'auth_app:test-detail' test.pk %}" class="survey-card block card-reveal card-reveal-delay-{{ forloop.counter0|add:1 }}">
                     <div class="p-6">
                         <div class="flex justify-between items-start mb-4">
                             <span class="status-badge status-badge-active">
